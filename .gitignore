@@ -15,3 +15,7 @@ test/tmp
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+src/libraries
+src/content
+src/temporary-storage
