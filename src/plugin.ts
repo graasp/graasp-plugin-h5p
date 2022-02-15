@@ -1,8 +1,8 @@
 import { Writable, Readable } from 'stream';
+import qs from 'qs';
 import path from 'path';
 import { FastifyRequest, FastifyReply, FastifyPluginAsync } from 'fastify';
-import fastifyMultipart, { Multipart } from 'fastify-multipart';
-import fastifyCors from 'fastify-cors';
+import fastifyMultipart from 'fastify-multipart';
 import fastifyFormBody from 'fastify-formbody';
 import {
   fs as h5pfs,
@@ -12,8 +12,9 @@ import {
   IContentStorage,
 } from '@lumieducation/h5p-server';
 
-import UrlGenerator from './urlGenerator';
 import MemberForH5P from './MemberForH5P';
+import UrlGenerator from './UrlGenerator';
+import { Member } from 'graasp';
 
 type H5PPluginOptions = {
   rootPath?: string;
@@ -27,9 +28,8 @@ class H5PFile {
   size: number;
   tempFilePath?: string;
 
-  constructor(fileObject: Multipart, file: Buffer) {
-    const { filename, mimetype } = fileObject;
-    console.log('filename: ', filename);
+  constructor(fileObject: any) {
+    const { filename, mimetype, file } = fileObject;
     const size = Buffer.byteLength(file);
     this.data = file;
     this.mimetype = mimetype;
@@ -39,14 +39,13 @@ class H5PFile {
 }
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
-  const { rootPath = '/workspace/src/plugins/h5p', host } = options;
+  const { db, members: { dbService: mS } } = fastify;
+  const { rootPath = __dirname, host } = options;
 
-  // add CORS support
-  if (fastify.corsPluginOptions) {
-    fastify.register(fastifyCors, fastify.corsPluginOptions);
-  }
+  // WE SHOULDN'T USE THAT!!!?
+  const mockUser = { id: 'mock-id', name: 'mock-name', email: 'mock@email.com' } as unknown as Member
 
-  fastify.register(fastifyFormBody);
+  fastify.register(fastifyFormBody, { parser: str => qs.parse(str) });
 
   fastify.register(fastifyMultipart, {
     limits: {
@@ -82,10 +81,10 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     path.join(rootPath, './temporary-storage'), // the path on the local disc where temporary files (uploads) should  be stored
     path.join(rootPath, './content'), // the path on the local disc where content is stored
     {} as unknown as IContentStorage,
-    () => {
-      return 'translation!';
-    }, // as ITranslationCallback,
-    new UrlGenerator(host, config),
+    (str) => {
+      return str;
+    }, // TODO
+    new UrlGenerator(host, config, '/items'),
   );
 
   h5pEditor.setRenderer((model) => model);
@@ -178,6 +177,19 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     response.send(readStream);
   };
 
+
+  async function fetchMemberInSession(request: FastifyRequest) {
+    const { session } = request;
+    const memberId = session.get('member');
+    console.log('memberId: ', memberId);
+
+    if (!memberId) return;
+
+    // TODO: do we really need to get the user from the DB? (or actor: { id } is enough?)
+    // maybe when the groups are implemented it will be necessary.
+    request.member = await mS.get(memberId, db.pool);
+  }
+
   fastify.get<{
     Querystring: {
       action: string;
@@ -195,68 +207,21 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       req.query.minorVersion,
       req.query.language,
     );
+
+    // HOW TO GET MEMBER??? CANNOT GET FROM REQUEST OR COOKIE...
+    // await fetchMemberInSession(req);
+
     const result = await ajaxEndpoint.getAjax(
       req.query.action,
       req.query.machineName,
       req.query.majorVersion,
       req.query.minorVersion,
       req.query.language,
-      new MemberForH5P(req.member),
+      new MemberForH5P(mockUser),
     );
     reply.status(200).send(result);
   });
 
-  fastify.get<{ Params: { contentId: string; filename: string } }>(
-    '/content/:contentId/:filename',
-    async (req, reply) => {
-      // depends on content storage: files in FileContentStorage can also be served statically
-      const { contentId, filename } = req.params;
-      const { mimetype, stream, stats, range } = await ajaxEndpoint.getContentFile(
-        contentId,
-        filename,
-        new MemberForH5P(req.member),
-        getRange(req),
-      );
-      if (range) {
-        pipeStreamToPartialResponse(filename, stream, reply, stats.size, range.start, range.end);
-      } else {
-        pipeStreamToResponse(mimetype, stream, reply, stats.size);
-      }
-    },
-  );
-
-  fastify.get('/libraries', async () => {
-    console.log('get libraries');
-    return [];
-  });
-
-  fastify.get<{ Params: { uberName: string; file: string } }>(
-    '/libraries/:ubername/:file',
-    async (req, reply) => {
-      // depends on library storage: files in FileLibraryStorage can also be served statically
-      const { uberName, file } = req.params;
-      console.log('get libraries', uberName, file);
-      const { mimetype, stream, stats } = await ajaxEndpoint.getLibraryFile(uberName, file);
-
-      pipeStreamToResponse(mimetype, stream, reply, stats.size, {
-        'Cache-Control': 'public, max-age=31536000',
-      });
-    },
-  );
-
-  fastify.get<{ Params: { file: string } }>('/temp-files/:file', async (req, reply) => {
-    const { file } = req.params;
-    const { mimetype, stream, stats, range } = await ajaxEndpoint.getTemporaryFile(
-      file,
-      new MemberForH5P(req.member),
-      getRange(req),
-    );
-    if (range) {
-      pipeStreamToPartialResponse(file, stream, reply, stats.size, range.start, range.end);
-    } else {
-      pipeStreamToResponse(mimetype, stream, reply, stats.size);
-    }
-  });
 
   /**
    * POST /ajax
@@ -265,56 +230,118 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
    * really POST requests, but look more like GET requests. This is simply how the H5P
    * client works and we can't change it.
    */
-  fastify.post<{ Querystring: { action: string; language: string; id: string; hubId: string } }>(
+  fastify.post<{ Querystring: { action: string; language: string; id: string; hubId: string }, Body: { libraries?: string[] } }>(
     '/ajax',
     async (req, reply) => {
-      const files = req.files();
 
-      for await (const fileObject of files) {
-        const file = await fileObject.toBuffer();
-
-        console.log(file);
-        const result = await ajaxEndpoint.postAjax(
-          req.query.action,
-          req.body as any,
-          (req.query?.language as string) ?? (req as any).language,
-          new MemberForH5P(req.member),
-          new H5PFile(fileObject, file),
-          req.query.id as string,
-          (stringId, _replacements) => stringId,
-          new H5PFile(fileObject, file), //.h5p??
-          req.query.hubId as string,
-        );
-
-        // suppose only one file
-        return reply.status(200).send(result);
+      // todo
+      const fileObjects = []
+      if (req.isMultipart()) {
+        const files = req?.files();
+        for await (const fileObject of files) {
+          const file = await fileObject.toBuffer();
+          fileObjects.push({ ...fileObject, file })
+        }
       }
+
+      const result = await ajaxEndpoint.postAjax(
+        req.query.action,
+        req.body as any,
+        (req.query?.language as string) ?? (req as any).language,
+        new MemberForH5P(mockUser),
+        fileObjects[0] && new H5PFile(fileObjects[0]),
+        req.query.id as string,
+        (stringId, _replacements) => stringId,
+        fileObjects[0] && new H5PFile(fileObjects[0]), //.h5p??
+        req.query.hubId as string,
+      );
+
+      // suppose only one file
+      return reply.status(200).send(result);
     },
   );
 
-  fastify.get<{ Params: { contentId: string } }>('/params/:contentId', async (req, reply) => {
-    const { contentId } = req.params;
-    // if you use the default renderer script of the editor
-    const result = await ajaxEndpoint.getContentParameters(contentId, new MemberForH5P(req.member));
-    reply.status(200);
-    return result;
-  });
-  fastify.get<{ Params: { contentId: string } }>('/download/:contentId', async (req, reply) => {
-    const { contentId } = req.params;
-    const pipe = new Writable(); // some pipestream to save the data to
-    // set filename for the package with .h5p extension
-    reply.header('Content-disposition', `attachment; filename=${contentId}.h5p`);
-    await ajaxEndpoint.getDownload(contentId, new MemberForH5P(req.member), pipe);
-    return reply.send(pipe);
-  });
+  await fastify.register(async (fastify) => {
 
-  fastify.get<{ Params: { contentId: string; lang: string } }>(
-    '/editor/:lang/:contentId',
-    async (req) => {
-      const { contentId, lang } = req.params;
-      return h5pEditor.render(contentId, lang, new MemberForH5P(req.member));
-    },
-  );
+    fastify.addHook('preHandler', fastify.verifyAuthentication);
+
+    fastify.get<{ Params: { contentId: string; filename: string } }>(
+      '/content/:contentId/:filename',
+      async (req, reply) => {
+        // depends on content storage: files in FileContentStorage can also be served statically
+        const { contentId, filename } = req.params;
+        const { mimetype, stream, stats, range } = await ajaxEndpoint.getContentFile(
+          contentId,
+          filename,
+          new MemberForH5P(req.member),
+          getRange(req),
+        );
+        if (range) {
+          pipeStreamToPartialResponse(filename, stream, reply, stats.size, range.start, range.end);
+        } else {
+          pipeStreamToResponse(mimetype, stream, reply, stats.size);
+        }
+      },
+    );
+
+    fastify.get('/libraries', async () => {
+      console.log('get libraries');
+      return [];
+    });
+
+    fastify.get<{ Params: { uberName: string; file: string } }>(
+      '/libraries/:ubername/:file',
+      async (req, reply) => {
+        // depends on library storage: files in FileLibraryStorage can also be served statically
+        const { uberName, file } = req.params;
+        console.log('get libraries', uberName, file);
+        const { mimetype, stream, stats } = await ajaxEndpoint.getLibraryFile(uberName, file);
+
+        pipeStreamToResponse(mimetype, stream, reply, stats.size, {
+          'Cache-Control': 'public, max-age=31536000',
+        });
+      },
+    );
+
+    fastify.get<{ Params: { file: string } }>('/temp-files/:file', async (req, reply) => {
+      const { file } = req.params;
+      const { mimetype, stream, stats, range } = await ajaxEndpoint.getTemporaryFile(
+        file,
+        new MemberForH5P(req.member),
+        getRange(req),
+      );
+      if (range) {
+        pipeStreamToPartialResponse(file, stream, reply, stats.size, range.start, range.end);
+      } else {
+        pipeStreamToResponse(mimetype, stream, reply, stats.size);
+      }
+    });
+
+
+    fastify.get<{ Params: { contentId: string } }>('/params/:contentId', async (req, reply) => {
+      const { contentId } = req.params;
+      // if you use the default renderer script of the editor
+      const result = await ajaxEndpoint.getContentParameters(contentId, new MemberForH5P(req.member));
+      reply.status(200);
+      return result;
+    });
+    fastify.get<{ Params: { contentId: string } }>('/download/:contentId', async (req, reply) => {
+      const { contentId } = req.params;
+      const pipe = new Writable(); // some pipestream to save the data to
+      // set filename for the package with .h5p extension
+      reply.header('Content-disposition', `attachment; filename=${contentId}.h5p`);
+      await ajaxEndpoint.getDownload(contentId, new MemberForH5P(req.member), pipe);
+      return reply.send(pipe);
+    });
+
+    fastify.get<{ Params: { contentId: string; lang: string } }>(
+      '/editor/:lang/:contentId',
+      async (req) => {
+        const { contentId, lang } = req.params;
+        return h5pEditor.render(contentId, lang, new MemberForH5P(req.member));
+      },
+    );
+  });
 };
 
 export default plugin;

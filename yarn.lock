@@ -1138,6 +1138,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/qs@npm:6.9.7":
+  version: 6.9.7
+  resolution: "@types/qs@npm:6.9.7"
+  checksum: 7fd6f9c25053e9b5bb6bc9f9f76c1d89e6c04f7707a7ba0e44cc01f17ef5284adb82f230f542c2d5557d69407c9a40f0f3515e8319afd14e1e16b5543ac6cdba
+  languageName: node
+  linkType: hard
+
 "@types/stack-utils@npm:^2.0.0":
   version: 2.0.1
   resolution: "@types/stack-utils@npm:2.0.1"
@@ -2906,9 +2913,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fastify@npm:3.25.3":
-  version: 3.25.3
-  resolution: "fastify@npm:3.25.3"
+"fastify@npm:3.27.0":
+  version: 3.27.0
+  resolution: "fastify@npm:3.27.0"
   dependencies:
     "@fastify/ajv-compiler": ^1.0.0
     abstract-logging: ^2.0.0
@@ -2925,7 +2932,7 @@ __metadata:
     secure-json-parse: ^2.0.0
     semver: ^7.3.2
     tiny-lru: ^7.0.0
-  checksum: b0ab3f9ae1c58386232a67c39e91611b856107c56c74d7b905454edbe001973b8fa4386d56714392a562ce1adfbc8dd7a2cf663a2516a1732f2ec35f3cf7f6de
+  checksum: 258b563001ca11402fcb79f4ed59f30aa1713c7d936238a7e00e3d00489b39081ce9a326514aa3d473dd28ba72725d3065a6ca62a7876431dc80bf509ff5d6c2
   languageName: node
   linkType: hard
 
@@ -3286,9 +3293,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graasp-repo@workspace:.":
+"graasp-plugin-h5p@workspace:.":
   version: 0.0.0-use.local
-  resolution: "graasp-repo@workspace:."
+  resolution: "graasp-plugin-h5p@workspace:."
   dependencies:
     "@commitlint/cli": ^13.1.0
     "@commitlint/config-conventional": ^13.1.0
@@ -3297,11 +3304,12 @@ __metadata:
     "@types/graasp": "github:graasp/graasp-types"
     "@types/jest": 27.0.1
     "@types/node": ^14.14.7
+    "@types/qs": 6.9.7
     "@typescript-eslint/eslint-plugin": 5.4.0
     "@typescript-eslint/parser": 5.4.0
     eslint: ^7.13.0
     eslint-config-prettier: ^8.3.0
-    fastify: 3.25.3
+    fastify: 3.27.0
     fastify-compress: ^4.0.1
     fastify-cors: 6.0.2
     fastify-formbody: 5.2.0
@@ -3311,6 +3319,7 @@ __metadata:
     jest: 27.3.0
     prettier: 2.5.1
     pretty-quick: 3.1.2
+    qs: 6.10.3
     ts-jest: 27.0.7
     typescript: 4.4.4
   languageName: unknown
@@ -5419,7 +5428,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.10.1":
+"qs@npm:6.10.3, qs@npm:^6.10.1":
   version: 6.10.3
   resolution: "qs@npm:6.10.3"
   dependencies:

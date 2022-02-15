@@ -47,6 +47,7 @@ export default class UrlGenerator implements IUrlGenerator {
   constructor(
     private host: string,
     private config: IH5PConfig,
+    private ajaxEndpointPrefix?: string,
     private csrfProtection?: {
       protectAjax: boolean;
       protectContentUserData: boolean;
@@ -65,7 +66,7 @@ export default class UrlGenerator implements IUrlGenerator {
         return `${this.config.baseUrl}${this.config.ajaxUrl}?${qs.name}=${qs.value}&action=`;
       }
     }
-    const url = `//${this.host}${this.config.baseUrl}${this.config.ajaxUrl}?action=`;
+    const url = `//${this.host}${this.ajaxEndpointPrefix}${this.config.baseUrl}${this.config.ajaxUrl}?action=`;
     console.log('ajax endpoint :', url);
     return url;
   };

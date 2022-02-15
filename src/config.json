@@ -1,1 +1,33 @@
-{"ajaxUrl":"/ajax","baseUrl":"/h5p","contentFilesUrl":"/content","coreUrl":"/core","downloadUrl":"/download","editorLibraryUrl":"/editor","librariesUrl":"/libraries","paramsUrl":"/params","playUrl":"/play","contentHubEnabled":false,"contentHubMetadataRefreshInterval":86400000,"contentTypeCacheRefreshInterval":86400000,"contentWhitelist":"json png jpg jpeg gif bmp tif tiff svg eot ttf woff woff2 otf webm mp4 ogg mp3 m4a wav txt pdf rtf doc docx xls xlsx ppt pptx odt ods odp xml csv diff patch swf md textile vtt webvtt","customization":{"global":{"editor":{"scripts":[],"styles":[]},"player":{"scripts":[],"styles":[]}}},"disableFullscreen":false,"enableLrsContentTypes":true,"exportMaxContentPathLength":255,"fetchingDisabled":0,"hubContentTypesEndpoint":"https://api.h5p.org/v1/content-types/","hubRegistrationEndpoint":"https://api.h5p.org/v1/sites","libraryWhitelist":"js css","maxFileSize":16777216,"maxTotalSize":67108864,"sendUsageStatistics":false,"siteType":"local","uuid":"523940d8-2115-471d-982f-fd2d73aa7a27"}
+{
+  "ajaxUrl": "/ajax",
+  "baseUrl": "/h5p",
+  "contentFilesUrl": "/content",
+  "coreUrl": "/core",
+  "downloadUrl": "/download",
+  "editorLibraryUrl": "/editor",
+  "librariesUrl": "/libraries",
+  "paramsUrl": "/params",
+  "playUrl": "/play",
+  "contentHubEnabled": false,
+  "contentHubMetadataRefreshInterval": 86400000,
+  "contentTypeCacheRefreshInterval": 86400000,
+  "contentWhitelist": "json png jpg jpeg gif bmp tif tiff svg eot ttf woff woff2 otf webm mp4 ogg mp3 m4a wav txt pdf rtf doc docx xls xlsx ppt pptx odt ods odp xml csv diff patch swf md textile vtt webvtt",
+  "customization": {
+    "global": {
+      "editor": { "scripts": [], "styles": [] },
+      "player": { "scripts": [], "styles": [] }
+    }
+  },
+  "disableFullscreen": false,
+  "enableLrsContentTypes": true,
+  "exportMaxContentPathLength": 255,
+  "fetchingDisabled": 0,
+  "hubContentTypesEndpoint": "https://api.h5p.org/v1/content-types/",
+  "hubRegistrationEndpoint": "https://api.h5p.org/v1/sites",
+  "libraryWhitelist": "js css",
+  "maxFileSize": 16777216,
+  "maxTotalSize": 67108864,
+  "sendUsageStatistics": false,
+  "siteType": "local",
+  "uuid": "523940d8-2115-471d-982f-fd2d73aa7a27"
+}

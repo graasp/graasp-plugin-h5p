@@ -11,13 +11,14 @@ class MemberForH5P implements IUser {
   type: string;
 
   constructor(member: Member) {
+    console.log('member: ', member);
     this.name = member.name;
     this.id = member.id;
     this.canCreateRestricted = false;
     this.canInstallRecommended = true; // tochange! <- only admin can install
     this.canUpdateAndInstallLibraries = true; // tochange! <- only admin can install
     this.email = member.email;
-    this.type = member.type;
+    this.type = member.type ?? 'individual';
   }
 }
 
