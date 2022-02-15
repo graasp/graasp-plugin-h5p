@@ -2906,9 +2906,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fastify@npm:3.27.1":
-  version: 3.27.1
-  resolution: "fastify@npm:3.27.1"
+"fastify@npm:3.25.3":
+  version: 3.25.3
+  resolution: "fastify@npm:3.25.3"
   dependencies:
     "@fastify/ajv-compiler": ^1.0.0
     abstract-logging: ^2.0.0
@@ -2925,7 +2925,7 @@ __metadata:
     secure-json-parse: ^2.0.0
     semver: ^7.3.2
     tiny-lru: ^7.0.0
-  checksum: a5ff30eac0ab882afe9cea9956b9b93d74c5e345eb6f6218a51d34df3b18dedc17551586aecb16524676d68238110dec7f14005a5c70b9f185a09a1a3ad34837
+  checksum: b0ab3f9ae1c58386232a67c39e91611b856107c56c74d7b905454edbe001973b8fa4386d56714392a562ce1adfbc8dd7a2cf663a2516a1732f2ec35f3cf7f6de
   languageName: node
   linkType: hard
 
@@ -3301,7 +3301,7 @@ __metadata:
     "@typescript-eslint/parser": 5.4.0
     eslint: ^7.13.0
     eslint-config-prettier: ^8.3.0
-    fastify: 3.27.1
+    fastify: 3.25.3
     fastify-compress: ^4.0.1
     fastify-cors: 6.0.2
     fastify-formbody: 5.2.0
