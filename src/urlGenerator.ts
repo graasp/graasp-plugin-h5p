@@ -1,4 +1,3 @@
-import { HOST } from '../../util/config';
 import { ContentId, IH5PConfig, IUrlGenerator, IUser } from '@lumieducation/h5p-server';
 
 /**
@@ -46,6 +45,7 @@ export default class UrlGenerator implements IUrlGenerator {
    * CSRF tokens will be added to URLs.
    */
   constructor(
+    private host: string,
     private config: IH5PConfig,
     private csrfProtection?: {
       protectAjax: boolean;
@@ -56,7 +56,7 @@ export default class UrlGenerator implements IUrlGenerator {
         value: string;
       };
     },
-  ) {}
+  ) { }
 
   public ajaxEndpoint = (user: IUser): string => {
     if (this.csrfProtection?.queryParamGenerator && this.csrfProtection?.protectAjax) {
@@ -65,8 +65,8 @@ export default class UrlGenerator implements IUrlGenerator {
         return `${this.config.baseUrl}${this.config.ajaxUrl}?${qs.name}=${qs.value}&action=`;
       }
     }
-    const url = `//${HOST}${this.config.baseUrl}${this.config.ajaxUrl}?action=`;
-    console.log(url);
+    const url = `//${this.host}${this.config.baseUrl}${this.config.ajaxUrl}?action=`;
+    console.log('ajax endpoint :', url);
     return url;
   };
 
@@ -109,11 +109,9 @@ export default class UrlGenerator implements IUrlGenerator {
     if (file.startsWith('http://') || file.startsWith('https://') || file.startsWith('/')) {
       return file;
     }
-    return `${this.baseUrl()}${this.config.librariesUrl}/${library.machineName}-${
-      library.majorVersion
-    }.${library.minorVersion}/${file}?version=${library.majorVersion}.${library.minorVersion}.${
-      library.patchVersion
-    }`;
+    return `${this.baseUrl()}${this.config.librariesUrl}/${library.machineName}-${library.majorVersion
+      }.${library.minorVersion}/${file}?version=${library.majorVersion}.${library.minorVersion}.${library.patchVersion
+      }`;
   };
 
   public parameters = (): string => `${this.baseUrl()}${this.config.paramsUrl}`;

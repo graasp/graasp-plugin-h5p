@@ -17,6 +17,7 @@ import MemberForH5P from './MemberForH5P';
 
 type H5PPluginOptions = {
   rootPath?: string;
+  host: string
 };
 
 class H5PFile {
@@ -38,7 +39,7 @@ class H5PFile {
 }
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
-  const { rootPath = '/workspace/src/plugins/h5p' } = options;
+  const { rootPath = '/workspace/src/plugins/h5p', host } = options;
 
   // add CORS support
   if (fastify.corsPluginOptions) {
@@ -84,7 +85,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     () => {
       return 'translation!';
     }, // as ITranslationCallback,
-    new UrlGenerator(config),
+    new UrlGenerator(host, config),
   );
 
   h5pEditor.setRenderer((model) => model);
