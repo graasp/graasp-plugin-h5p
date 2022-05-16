@@ -1,8 +1,8 @@
 {
-  "name": "graasp-repo",
+  "name": "graasp-plugin-h5p",
   "author": "Graasp Association",
   "version": "0.1.0",
-  "description": "Repository template for Graasp",
+  "description": "Graasp back-end support for H5P as a Fastify plugin",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,20 +18,33 @@
     "test:watch": "yarn test --watchAll",
     "lint": "eslint ."
   },
-  "repository": "git@github.com:graasp/graasp-repo.git",
+  "repository": "git@github.com:graasp/graasp-plugin-h5p.git",
   "license": "AGPL",
   "bugs": {
-    "url": "https://github.com/graasp/graasp-repo/issues"
+    "url": "https://github.com/graasp/graasp-plugin-h5p/issues"
   },
-  "homepage": "https://github.com/graasp/graasp-repo#readme",
+  "homepage": "https://github.com/graasp/graasp-plugin-h5p#readme",
+  "dependencies": {
+    "@fastify/multipart": "6.0.0",
+    "extract-zip": "2.0.1",
+    "graasp-plugin-file": "github:graasp/graasp-plugin-file",
+    "graasp-plugin-file-item": "github:graasp/graasp-plugin-file-item",
+    "http-status-codes": "2.2.0",
+    "uuid": "8.3.2"
+  },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
+    "@trivago/prettier-plugin-sort-imports": "3.2.0",
+    "@types/extract-zip": "2.0.1",
+    "@types/graasp": "github:graasp/graasp-types",
     "@types/jest": "27.0.1",
+    "@types/uuid": "8.3.4",
     "@typescript-eslint/eslint-plugin": "5.4.0",
     "@typescript-eslint/parser": "5.4.0",
     "eslint": "^7.13.0",
     "eslint-config-prettier": "^8.3.0",
+    "fastify": "3.29.0",
     "husky": "7.0.4",
     "jest": "27.3.0",
     "prettier": "2.5.1",
