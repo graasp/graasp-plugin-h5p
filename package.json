@@ -30,6 +30,7 @@
     "graasp-plugin-file": "github:graasp/graasp-plugin-file",
     "graasp-plugin-file-item": "github:graasp/graasp-plugin-file-item",
     "http-status-codes": "2.2.0",
+    "mmmagic": "0.5.3",
     "uuid": "8.3.2"
   },
   "devDependencies": {
@@ -39,6 +40,7 @@
     "@types/extract-zip": "2.0.1",
     "@types/graasp": "github:graasp/graasp-types",
     "@types/jest": "27.0.1",
+    "@types/mmmagic": "0.4.30",
     "@types/uuid": "8.3.4",
     "@typescript-eslint/eslint-plugin": "5.4.0",
     "@typescript-eslint/parser": "5.4.0",
