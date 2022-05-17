@@ -17,14 +17,15 @@ import {
   GraaspS3FileItemOptions,
   ServiceMethod,
 } from 'graasp-plugin-file';
+import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
   H5P_ALLOWED_FILE_EXTENSIONS,
   H5P_FILE_MIME_TYPE,
+  H5P_ITEM_TYPE,
   MAX_FILES,
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
-  REMOTE_ROOT_H5P_STORAGE_DIR,
   TMP_EXTRACT_DIR,
 } from './constants';
 import { InvalidH5PFileError } from './errors';
@@ -61,7 +62,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   /**
    * Uploads both the .h5p and the package content into public storage
    * Recursive function to traverse and upload the H5P folder
-   * IMPORTANT: the top-down traversal must not block or await (ensures that files
+   * IMPORTANT: the top-down traversal must not wait for long (ensures that files
    * are uploaded in parallel as soon as possible). Results aggregation can however
    * await in parallel (note: await in a map fn does not block the map iteration).
    */
@@ -112,8 +113,36 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   /**
    * Creates a Graasp item for the uploaded H5P package
+   * @param filename Name of the original H5P file
+   * @param h5pFilePath Path of the saved H5P file
+   * @param contentFilePath Root path of the extracted contents
    */
-  async function createH5PItem(): Promise<Item> {}
+  async function createH5PItem(
+    filename: string,
+    h5pFilePath: string,
+    contentFilePath: string,
+    member: Actor,
+    parentId?: string,
+  ): Promise<Item> {
+    const metadata = {
+      name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
+      type: H5P_ITEM_TYPE,
+      extra: {
+        [serviceMethod]: {
+          h5pFilePath,
+          contentFilePath,
+        },
+      },
+    };
+    const create = itemTaskManager.createCreateTaskSequence(member, metadata, parentId);
+    return taskRunner.runSingleSequence(create) as Promise<Item>;
+  }
+
+  // Helper to build the local or remote path of the .h5p file
+  const buildH5PPath = (rootPath: string, contentId: string) =>
+    path.join(rootPath, `${contentId}.h5p`);
+  // Helper to build the local or remote path of the h5p content root
+  const buildContentPath = (rootPath: string) => path.join(rootPath, 'content');
 
   fastify.register(fastifyMultipart, {
     limits: {
@@ -125,6 +154,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   fastify.post('/h5p-import', async (request: Request) => {
     const { file, member, log, query } = request;
+    const { parentId } = query as { parentId?: string };
 
     const h5pFile = await file();
 
@@ -134,11 +164,14 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
     const contentId = uuid.v4();
     const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
+    const remoteRootPath = path.join(pathPrefix, contentId);
+
     await mkdir(targetFolder, { recursive: true });
 
     try {
-      const savePath = path.join(targetFolder, `${contentId}.h5p`);
-      const contentFolder = path.join(targetFolder, 'content');
+      const savePath = buildH5PPath(targetFolder, contentId);
+      const contentFolder = buildContentPath(targetFolder);
+
       // save H5P file
       await pipeline(h5pFile.file, fs.createWriteStream(savePath));
       await extract(savePath, { dir: contentFolder });
@@ -149,13 +182,27 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       }
 
       // upload whole folder to public storage
-      const remoteRootPath = path.join(REMOTE_ROOT_H5P_STORAGE_DIR, contentId);
       await uploadH5P(targetFolder, remoteRootPath, member);
 
-      const item = await createH5PItem();
-
+      const item = await createH5PItem(
+        h5pFile.filename,
+        buildH5PPath(remoteRootPath, contentId),
+        buildContentPath(remoteRootPath),
+        member,
+        parentId,
+      );
       return item;
+    } catch (error) {
+      // delete public storage folder of this H5P if upload or creation fails
+      fileTaskManager.createDeleteFolderTask(member, {
+        folderPath: remoteRootPath,
+      });
+      // log and rethrow to let fastify handle the error response
+      log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
+      log.error(error);
+      throw error;
     } finally {
+      // in all cases, remove local temp folder
       rm(targetFolder, { recursive: true });
     }
   });
