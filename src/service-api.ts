@@ -70,10 +70,11 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     folder: string,
     uploadPath: string,
     member: Actor,
-  ): Promise<Array<unknown>> {
+  ): Promise<Array<string>> {
     const children = await readdir(folder);
 
-    return children.flatMap(async (child) => {
+    // we will flatMap with promises: first map
+    const uploads = children.map(async (child) => {
       const childPath = path.join(folder, child);
       const childUploadPath = path.join(uploadPath, child);
       const stats = await lstat(child);
@@ -105,10 +106,13 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           size,
         });
 
+        await taskRunner.runSingle(uploadTask);
         // we're using flatMap, wrap result in array
-        return [await taskRunner.runSingle(uploadTask)];
+        return [childUploadPath];
       }
     });
+    // then resolve promises array and flatten
+    return (await Promise.all(uploads)).flat();
   }
 
   /**
