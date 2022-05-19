@@ -26,6 +26,7 @@
   "homepage": "https://github.com/graasp/graasp-plugin-h5p#readme",
   "dependencies": {
     "@fastify/multipart": "6.0.0",
+    "ajv": "8.11.0",
     "extract-zip": "2.0.1",
     "graasp-plugin-file": "github:graasp/graasp-plugin-file",
     "graasp-plugin-file-item": "github:graasp/graasp-plugin-file-item",

@@ -50,14 +50,32 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
 
+  // Helper to build the local or remote path of the .h5p file
+  const buildH5PPath = (rootPath: string, contentId: string) =>
+    path.join(rootPath, `${contentId}.h5p`);
+
+  // Helper to build the local or remote path of the h5p content root
+  const buildContentPath = (rootPath: string) => path.join(rootPath, 'content');
+
+  // helper to locate the main h5p.json inside an extracted H5P package
+  const buildManifestPath = (extractedContentDir: string) =>
+    path.join(extractedContentDir, 'h5p.json');
+
   /**
    * Validates H5P package content against the (poorly documented) H5P spec
    * https://h5p.org/documentation/developers/h5p-specification
+   * https://h5p.org/creating-your-own-h5p-plugin
    */
   async function validateH5P(
-    h5pFile: PathLike,
-    extractedContentDir: PathLike,
-  ): Promise<{ isValid: boolean; error?: string }> {}
+    extractedContentDir: string,
+  ): Promise<{ isValid: boolean; error?: string }> {
+    const manifestPath = buildManifestPath(extractedContentDir);
+    if (!fs.existsSync(manifestPath)) {
+      return { isValid: false, error: 'Missing h5p.json manifest file' };
+    }
+
+    
+  }
 
   /**
    * Uploads both the .h5p and the package content into public storage
@@ -142,12 +160,6 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     return taskRunner.runSingleSequence(create) as Promise<Item>;
   }
 
-  // Helper to build the local or remote path of the .h5p file
-  const buildH5PPath = (rootPath: string, contentId: string) =>
-    path.join(rootPath, `${contentId}.h5p`);
-  // Helper to build the local or remote path of the h5p content root
-  const buildContentPath = (rootPath: string) => path.join(rootPath, 'content');
-
   fastify.register(fastifyMultipart, {
     limits: {
       fields: MAX_NON_FILE_FIELDS,
@@ -181,7 +193,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       await pipeline(h5pFile.file, fs.createWriteStream(savePath));
       await extract(savePath, { dir: contentFolder });
 
-      const { isValid, error } = await validateH5P(savePath, contentFolder);
+      const { isValid, error } = await validateH5P(contentFolder);
       if (!isValid) {
         throw new InvalidH5PFileError(error);
       }
