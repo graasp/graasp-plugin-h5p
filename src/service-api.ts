@@ -170,9 +170,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       await pipeline(h5pFile.file, fs.createWriteStream(savePath));
       await extract(savePath, { dir: contentFolder });
 
-      const { isValid, error } = await h5pValidator.validatePackage(contentFolder);
-      if (!isValid) {
-        throw new InvalidH5PFileError(error);
+      const result = await h5pValidator.validatePackage(contentFolder);
+      if (!result.isValid) {
+        throw new InvalidH5PFileError(result.error);
       }
 
       // try-catch block for remote storage cleanup

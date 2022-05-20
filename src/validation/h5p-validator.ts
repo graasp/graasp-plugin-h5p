@@ -39,7 +39,9 @@ export class H5PValidator {
    * https://h5p.org/creating-your-own-h5p-plugin
    * @param extractedH5PRoot String of the root path where the .h5p package has been extracted
    */
-  async validatePackage(extractedH5PRoot: string): Promise<{ isValid: boolean; error?: string }> {
+  async validatePackage(
+    extractedH5PRoot: string,
+  ): Promise<{ isValid: false; error: string } | { isValid: true; manifest: H5P.Manifest }> {
     // Check if h5p.json manifest file exists
     const manifestPath = this.buildManifestPath(extractedH5PRoot);
     if (!fs.existsSync(manifestPath)) {
@@ -62,6 +64,6 @@ export class H5PValidator {
     }
 
     // All checks are performed
-    return { isValid: true };
+    return { isValid: true, manifest };
   }
 }
