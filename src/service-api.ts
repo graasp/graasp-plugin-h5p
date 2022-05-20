@@ -1,5 +1,5 @@
 import extract from 'extract-zip';
-import fs, { PathLike } from 'fs';
+import fs from 'fs';
 import { lstat, mkdir, readdir, rm } from 'fs/promises';
 import mmm from 'mmmagic';
 import path from 'path';
@@ -20,7 +20,6 @@ import {
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
-  H5P_ALLOWED_FILE_EXTENSIONS,
   H5P_FILE_MIME_TYPE,
   H5P_ITEM_TYPE,
   MAX_FILES,
@@ -29,6 +28,7 @@ import {
   TMP_EXTRACT_DIR,
 } from './constants';
 import { InvalidH5PFileError } from './errors';
+import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
 const detectMimeType = util.promisify(magic.detectFile.bind(magic));
@@ -49,6 +49,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   const { serviceMethod, serviceOptions, pathPrefix } = options;
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
+  const h5pValidator = new H5PValidator();
 
   // Helper to build the local or remote path of the .h5p file
   const buildH5PPath = (rootPath: string, contentId: string) =>
@@ -56,26 +57,6 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   // Helper to build the local or remote path of the h5p content root
   const buildContentPath = (rootPath: string) => path.join(rootPath, 'content');
-
-  // helper to locate the main h5p.json inside an extracted H5P package
-  const buildManifestPath = (extractedContentDir: string) =>
-    path.join(extractedContentDir, 'h5p.json');
-
-  /**
-   * Validates H5P package content against the (poorly documented) H5P spec
-   * https://h5p.org/documentation/developers/h5p-specification
-   * https://h5p.org/creating-your-own-h5p-plugin
-   */
-  async function validateH5P(
-    extractedContentDir: string,
-  ): Promise<{ isValid: boolean; error?: string }> {
-    const manifestPath = buildManifestPath(extractedContentDir);
-    if (!fs.existsSync(manifestPath)) {
-      return { isValid: false, error: 'Missing h5p.json manifest file' };
-    }
-
-    
-  }
 
   /**
    * Uploads both the .h5p and the package content into public storage
@@ -101,13 +82,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         // recursively upload child folder
         return await uploadH5P(childPath, childUploadPath, member);
       } else {
-        // check if file extension is allowed
-        const extension = path.extname(childPath);
-        const normalizedExtension = (
-          extension[0] === '.' ? extension.slice(1) : extension
-        ).toLowerCase();
         // ignore this file if extension is not allowed
-        if (!H5P_ALLOWED_FILE_EXTENSIONS.includes(normalizedExtension)) {
+        const ext = path.extname(childPath);
+        if (!h5pValidator.isExtensionAllowed(ext)) {
           // we're using flatMap, represent none value with empty array
           return [];
         }
@@ -193,7 +170,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       await pipeline(h5pFile.file, fs.createWriteStream(savePath));
       await extract(savePath, { dir: contentFolder });
 
-      const { isValid, error } = await validateH5P(contentFolder);
+      const { isValid, error } = await h5pValidator.validatePackage(contentFolder);
       if (!isValid) {
         throw new InvalidH5PFileError(error);
       }

@@ -3626,6 +3626,7 @@ __metadata:
     mmmagic: 0.5.3
     prettier: 2.5.1
     pretty-quick: 3.1.2
+    secure-json-parse: 2.4.0
     ts-jest: 27.0.7
     typescript: 4.4.4
     uuid: 8.3.2
@@ -6202,7 +6203,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"secure-json-parse@npm:^2.0.0, secure-json-parse@npm:^2.4.0":
+"secure-json-parse@npm:2.4.0, secure-json-parse@npm:^2.0.0, secure-json-parse@npm:^2.4.0":
   version: 2.4.0
   resolution: "secure-json-parse@npm:2.4.0"
   checksum: efaafcaa08a4646ca829b29168474f57fb289a0ca7a1d77b66b55a0292785bc6eb9143b21cfc50b37dd12a823c25b12aa1771f18314ed5a616a1f8f12a318533

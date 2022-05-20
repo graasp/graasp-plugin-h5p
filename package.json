@@ -32,6 +32,7 @@
     "graasp-plugin-file-item": "github:graasp/graasp-plugin-file-item",
     "http-status-codes": "2.2.0",
     "mmmagic": "0.5.3",
+    "secure-json-parse": "2.4.0",
     "uuid": "8.3.2"
   },
   "devDependencies": {
