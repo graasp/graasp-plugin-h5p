@@ -28,6 +28,7 @@ import {
   TMP_EXTRACT_DIR,
 } from './constants';
 import { InvalidH5PFileError } from './errors';
+import { h5pImport } from './schemas';
 import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
@@ -145,7 +146,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     },
   });
 
-  fastify.post('/h5p-import', async (request: Request) => {
+  fastify.post('/h5p-import', { schema: h5pImport }, async (request: Request) => {
     const { file, member, log, query } = request;
     const { parentId } = query as { parentId?: string };
 

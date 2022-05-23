@@ -2,6 +2,26 @@ import { JSONSchemaType } from 'ajv';
 
 import { H5P } from './validation/h5p';
 
+export const h5pImport = {
+  querystring: {
+    type: 'object',
+    properties: {
+      parentId: { $ref: 'http://graasp.org/#/definitions/uuid' },
+    },
+    additionalProperties: false,
+  },
+};
+
+export const h5pDownload = {
+  params: {
+    itemId: {
+      $ref: 'http://graasp.org/#/definitions/uuid',
+    },
+  },
+  required: ['itemId'],
+  additionalProperties: false,
+};
+
 /**
  * Describes an h5p.json manifest as a JSON schema
  * See {@link H5P.Manifest}
