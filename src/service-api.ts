@@ -146,66 +146,74 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     },
   });
 
-  fastify.post('/h5p-import', { schema: h5pImport }, async (request: Request) => {
-    const { file, member, log, query } = request;
-    const { parentId } = query as { parentId?: string };
+  fastify.post<{ Querystring: { parentId?: string } }>(
+    '/h5p-import',
+    { schema: h5pImport },
+    async (request) => {
+      const {
+        file,
+        member,
+        log,
+        query: { parentId },
+      } = request;
 
-    const h5pFile = await file();
+      const h5pFile = await file();
 
-    if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
-      throw new InvalidH5PFileError(h5pFile.mimetype);
-    }
-
-    const contentId = uuid.v4();
-    const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
-    const remoteRootPath = path.join(pathPrefix, contentId);
-
-    await mkdir(targetFolder, { recursive: true });
-
-    // try-catch block for local storage cleanup
-    try {
-      const savePath = buildH5PPath(targetFolder, contentId);
-      const contentFolder = buildContentPath(targetFolder);
-
-      // save H5P file
-      await pipeline(h5pFile.file, fs.createWriteStream(savePath));
-      await extract(savePath, { dir: contentFolder });
-
-      const result = await h5pValidator.validatePackage(contentFolder);
-      if (!result.isValid) {
-        throw new InvalidH5PFileError(result.error);
+      if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
+        throw new InvalidH5PFileError(h5pFile.mimetype);
       }
 
-      // try-catch block for remote storage cleanup
+      const contentId = uuid.v4();
+      const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
+      const remoteRootPath = path.join(pathPrefix, contentId);
+
+      await mkdir(targetFolder, { recursive: true });
+
+      // try-catch block for local storage cleanup
       try {
-        // upload whole folder to public storage
-        await uploadH5P(targetFolder, remoteRootPath, member);
+        const savePath = buildH5PPath(targetFolder, contentId);
+        const contentFolder = buildContentPath(targetFolder);
 
-        const item = await createH5PItem(
-          h5pFile.filename,
-          buildH5PPath(remoteRootPath, contentId),
-          buildContentPath(remoteRootPath),
-          member,
-          parentId,
-        );
-        return item;
-      } catch (error) {
-        // delete public storage folder of this H5P if upload or creation fails
-        fileTaskManager.createDeleteFolderTask(member, {
-          folderPath: remoteRootPath,
-        });
-        // log and rethrow to let fastify handle the error response
-        log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
-        log.error(error);
-        throw error;
+        // save H5P file
+        await pipeline(h5pFile.file, fs.createWriteStream(savePath));
+        await extract(savePath, { dir: contentFolder });
+
+        const result = await h5pValidator.validatePackage(contentFolder);
+        if (!result.isValid) {
+          throw new InvalidH5PFileError(result.error);
+        }
+
+        // try-catch block for remote storage cleanup
+        try {
+          // upload whole folder to public storage
+          await uploadH5P(targetFolder, remoteRootPath, member);
+
+          const item = await createH5PItem(
+            h5pFile.filename,
+            buildH5PPath(remoteRootPath, contentId),
+            buildContentPath(remoteRootPath),
+            member,
+            parentId,
+          );
+          return item;
+        } catch (error) {
+          // delete public storage folder of this H5P if upload or creation fails
+          fileTaskManager.createDeleteFolderTask(member, {
+            folderPath: remoteRootPath,
+          });
+          // log and rethrow to let fastify handle the error response
+          log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
+          log.error(error);
+          throw error;
+        }
+        // end of try-catch block for remote storage cleanup
+      } finally {
+        // in all cases, remove local temp folder
+        rm(targetFolder, { recursive: true });
       }
-      // end of try-catch block for remote storage cleanup
-    } finally {
-      // in all cases, remove local temp folder
-      rm(targetFolder, { recursive: true });
-    }
-    // end of try-catch block for local storage cleanup
-  });
+      // end of try-catch block for local storage cleanup
+    },
+  );
 };
 
 export default plugin;
