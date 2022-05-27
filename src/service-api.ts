@@ -77,7 +77,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     const uploads = children.map(async (child) => {
       const childPath = path.join(folder, child);
       const childUploadPath = path.join(uploadPath, child);
-      const stats = await lstat(child);
+      const stats = await lstat(childPath);
 
       if (stats.isDirectory()) {
         // recursively upload child folder
@@ -206,6 +206,10 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           fileTaskManager.createDeleteFolderTask(member, {
             folderPath: remoteRootPath,
           });
+
+          // remove local temp folder, before rethrowing
+          rm(targetFolder, { recursive: true });
+
           // log and rethrow to let fastify handle the error response
           log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
           log.error(error);
