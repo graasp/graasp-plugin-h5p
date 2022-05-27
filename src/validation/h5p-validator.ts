@@ -52,7 +52,7 @@ export class H5PValidator {
     const manifestJSON = await readFile(manifestPath, { encoding: 'utf-8' });
     const manifest = secureJSON.safeParse(manifestJSON);
     if (manifest === null || !this.isValidManifest(manifest)) {
-      return { isValid: false, error: 'Invalid h5p.json manifest file' };
+      return { isValid: false, error: 'Invalid h5p.json manifest file: \n\t' + this.isValidManifest.errors?.map(e => e.message)?.join("\n\t") ?? manifest };
     }
 
     // The 'preloadedDependencies' field must at least contain the main library of the package

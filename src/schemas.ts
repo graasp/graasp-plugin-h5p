@@ -352,5 +352,5 @@ export const h5pManifestSchema: JSONSchemaType<H5P.Manifest> = {
   ],
   */
   required: ['title', 'mainLibrary', 'language', 'preloadedDependencies', 'embedTypes'],
-  additionalProperties: false,
+  additionalProperties: true,
 };
