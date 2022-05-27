@@ -151,13 +151,15 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     { schema: h5pImport },
     async (request) => {
       const {
-        file,
         member,
         log,
         query: { parentId },
       } = request;
 
-      const h5pFile = await file();
+      // WARNING: cannot destructure { file } = request, which triggers an undefined TypeError internally
+      // (maybe getter performs side-effect on promise handler?)
+      // so use request.file notation instead
+      const h5pFile = await request.file();
 
       if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
         throw new InvalidH5PFileError(h5pFile.mimetype);
