@@ -5,7 +5,7 @@ import mmm from 'mmmagic';
 import path from 'path';
 import { pipeline } from 'stream/promises';
 import util from 'util';
-import uuid from 'uuid';
+import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync, FastifyRequest as Request } from 'fastify';
@@ -161,11 +161,14 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       // so use request.file notation instead
       const h5pFile = await request.file();
 
+      /*
+      // uppy tries to guess the mime type but fails and falls back to application/octet-stream, so we disable this check for now
       if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
         throw new InvalidH5PFileError(h5pFile.mimetype);
       }
+      */
 
-      const contentId = uuid.v4();
+      const contentId = v4();
       const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
       const remoteRootPath = path.join(pathPrefix, contentId);
 
