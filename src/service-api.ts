@@ -10,7 +10,7 @@ import { v4 } from 'uuid';
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync, FastifyRequest as Request } from 'fastify';
 
-import { Actor, Item } from 'graasp';
+import { Actor, Item, ItemMembership, PermissionLevel } from 'graasp';
 import {
   FileTaskManager,
   GraaspLocalFileItemOptions,
@@ -44,6 +44,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   // get services from server instance
   const {
     items: { taskManager: itemTaskManager },
+    itemMemberships: { taskManager: itemMembershipTaskManager },
     taskRunner,
   } = fastify;
 
@@ -155,6 +156,18 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         log,
         query: { parentId },
       } = request;
+
+      // validate write permission in parent if it exists
+      if (parentId) {
+        const getParentTask = itemTaskManager.createGetTask(member, parentId);
+        const parent = await taskRunner.runSingle(getParentTask);
+        const getMembershipTask = itemMembershipTaskManager.createGetMemberItemMembershipTask(
+          member,
+          { item: parent, validatePermission: PermissionLevel.Write },
+        );
+        // getMembershipTask will throw if permission is not met
+        await taskRunner.runSingle(getMembershipTask);
+      }
 
       // WARNING: cannot destructure { file } = request, which triggers an undefined TypeError internally
       // (maybe getter performs side-effect on promise handler?)
