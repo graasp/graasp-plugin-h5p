@@ -8,9 +8,9 @@ import util from 'util';
 import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
-import { FastifyPluginAsync, FastifyRequest as Request } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 
-import { Actor, Item, ItemMembership, PermissionLevel } from 'graasp';
+import { Actor, Item, PermissionLevel } from 'graasp';
 import {
   FileTaskManager,
   GraaspLocalFileItemOptions,
@@ -20,15 +20,15 @@ import {
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
-  H5P_FILE_MIME_TYPE,
   H5P_ITEM_TYPE,
   MAX_FILES,
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
   TMP_EXTRACT_DIR,
 } from './constants';
-import { InvalidH5PFileError } from './errors';
-import { h5pImport } from './schemas';
+import { H5PItemMissingExtraError, H5PItemNotFoundError, InvalidH5PFileError } from './errors';
+import { h5pImport, h5pServe } from './schemas';
+import { H5PExtra } from './types';
 import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
@@ -124,7 +124,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     contentFilePath: string,
     member: Actor,
     parentId?: string,
-  ): Promise<Item> {
+  ): Promise<Item<H5PExtra>> {
     const metadata = {
       name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
       type: H5P_ITEM_TYPE,
@@ -136,7 +136,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       },
     };
     const create = itemTaskManager.createCreateTaskSequence(member, metadata, parentId);
-    return taskRunner.runSingleSequence(create) as Promise<Item>;
+    return taskRunner.runSingleSequence(create) as Promise<Item<H5PExtra>>;
   }
 
   fastify.register(fastifyMultipart, {
@@ -234,6 +234,37 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         rm(targetFolder, { recursive: true });
       }
       // end of try-catch block for local storage cleanup
+    },
+  );
+
+  fastify.get<{ Params: { itemId: string; contentRoute: string } }>(
+    '/h5p-content/:itemId/:contentRoute*',
+    { schema: h5pServe },
+    async (request, reply) => {
+      const {
+        member,
+        log,
+        params: { itemId, contentRoute },
+      } = request;
+
+      // retrieve object (also checks for read permission)
+      const getItemTask = itemTaskManager.createGetTask<H5PExtra>(member, itemId);
+      const item = await taskRunner.runSingle<Item<H5PExtra>>(getItemTask);
+      if (item === null) {
+        throw new H5PItemNotFoundError(itemId);
+      }
+
+      const storageRoot = item.extra?.[serviceMethod]?.h5pContentPath;
+      if (!storageRoot) {
+        throw new H5PItemMissingExtraError(item);
+      }
+
+      // sanitize content route parameter: remove any leading /, ./ or ../
+      const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
+      const filepath = path.join(storageRoot, safeContentRoute);
+
+      const dlFileTask = fileTaskManager.createDownloadFileTask(member, { reply, filepath })
+      await taskRunner.runSingle(dlFileTask);
     },
   );
 };
