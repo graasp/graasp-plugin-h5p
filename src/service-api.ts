@@ -18,7 +18,6 @@ import {
   ServiceMethod,
 } from 'graasp-plugin-file';
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
-import { PermissionLevel } from 'graasp-utils';
 
 import {
   H5P_ITEM_TYPE,
@@ -29,7 +28,7 @@ import {
 } from './constants';
 import { H5PItemMissingExtraError, H5PItemNotFoundError, InvalidH5PFileError } from './errors';
 import { h5pImport, h5pServe } from './schemas';
-import { H5PExtra } from './types';
+import { H5PExtra, PermissionLevel } from './types';
 import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!

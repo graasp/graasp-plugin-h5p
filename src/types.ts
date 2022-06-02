@@ -10,3 +10,13 @@ export type H5PExtra = {
     h5pContentPath: string;
   };
 };
+
+/**
+ * Item permissions level
+ * TODO: use common graasp library
+ */
+export enum PermissionLevel {
+  Read = 'read',
+  Write = 'write',
+  Admin = 'admin',
+}
