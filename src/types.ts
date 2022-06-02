@@ -7,7 +7,7 @@ export type H5PExtra = {
     /** relative path from root storage to the uploaded .h5p package */
     h5pFilePath: string;
     /** relative path from root storage to the assets folder */
-    h5pContentPath: string;
+    contentFilePath: string;
   };
 };
 

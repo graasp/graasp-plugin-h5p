@@ -254,7 +254,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         throw new H5PItemNotFoundError(itemId);
       }
 
-      const storageRoot = item.extra?.[serviceMethod]?.h5pContentPath;
+      const storageRoot = item.extra?.[serviceMethod]?.contentFilePath;
       if (!storageRoot) {
         throw new H5PItemMissingExtraError(item);
       }
