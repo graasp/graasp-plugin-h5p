@@ -10,7 +10,7 @@ import { v4 } from 'uuid';
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync } from 'fastify';
 
-import { Actor, Item, PermissionLevel } from 'graasp';
+import { Actor, Item } from 'graasp';
 import {
   FileTaskManager,
   GraaspLocalFileItemOptions,
@@ -18,6 +18,7 @@ import {
   ServiceMethod,
 } from 'graasp-plugin-file';
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
+import { PermissionLevel } from 'graasp-utils';
 
 import {
   H5P_ITEM_TYPE,
@@ -263,7 +264,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
       const filepath = path.join(storageRoot, safeContentRoute);
 
-      const dlFileTask = fileTaskManager.createDownloadFileTask(member, { reply, filepath })
+      const dlFileTask = fileTaskManager.createDownloadFileTask(member, { reply, filepath });
       await taskRunner.runSingle(dlFileTask);
     },
   );

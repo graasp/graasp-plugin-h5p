@@ -3620,6 +3620,7 @@ __metadata:
     fastify: 3.29.0
     graasp-plugin-file: "github:graasp/graasp-plugin-file"
     graasp-plugin-file-item: "github:graasp/graasp-plugin-file-item"
+    graasp-utils: "github:graasp/graasp-utils"
     http-status-codes: 2.2.0
     husky: 7.0.4
     jest: 27.3.0
@@ -3642,6 +3643,13 @@ __metadata:
     http-status-codes: ^2.2.0
     qs: ^6.10.2
   checksum: e35570fa478e8fab2eddc44055cd60b4fe114df330dc8bdafbfbd578690fdad20d5ee73bf5616975e61d308efe5f632d031df6bb13636e26e67845f5dfef0a55
+  languageName: node
+  linkType: hard
+
+"graasp-utils@github:graasp/graasp-utils":
+  version: 0.1.0
+  resolution: "graasp-utils@https://github.com/graasp/graasp-utils.git#commit=82be1fd0ba2cc7a3c59465012b55e10736e17f96"
+  checksum: bdfe077749bc6d224b003a4c66ffd7f26c0aa2a848006dafaf24861ba2546cb3e97ceae358ff4ecc3e85129335f60166718fa6d060119137e6effd9ccf082d66
   languageName: node
   linkType: hard
 
