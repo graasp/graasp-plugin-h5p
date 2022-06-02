@@ -268,7 +268,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         filepath,
         itemId,
       });
-      await taskRunner.runSingle(dlFileTask);
+      return await taskRunner.runSingle(dlFileTask);
     },
   );
 };
