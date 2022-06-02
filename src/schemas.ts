@@ -17,11 +17,12 @@ export const h5pServe = {
     itemId: {
       $ref: 'http://graasp.org/#/definitions/uuid',
     },
-    contentRoute: {
+    // content path (rest of route)
+    '*': {
       type: 'string',
     },
   },
-  required: ['itemId', 'contentRoute'],
+  required: ['itemId', '*'],
   additionalProperties: false,
 };
 

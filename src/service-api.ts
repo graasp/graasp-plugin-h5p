@@ -237,14 +237,14 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     },
   );
 
-  fastify.get<{ Params: { itemId: string; contentRoute: string } }>(
-    '/h5p-content/:itemId/:contentRoute*',
+  fastify.get<{ Params: { itemId: string; '*': string } }>(
+    '/h5p-content/:itemId/*', // use * notation to catch rest of the route
     { schema: h5pServe },
     async (request, reply) => {
       const {
         member,
         log,
-        params: { itemId, contentRoute },
+        params: { itemId, '*': contentRoute }, // rest of route is renamed to parameter contentRoute
       } = request;
 
       // retrieve object (also checks for read permission)
@@ -263,7 +263,11 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
       const filepath = path.join(storageRoot, safeContentRoute);
 
-      const dlFileTask = fileTaskManager.createDownloadFileTask(member, { reply, filepath });
+      const dlFileTask = fileTaskManager.createDownloadFileTask(member, {
+        reply,
+        filepath,
+        itemId,
+      });
       await taskRunner.runSingle(dlFileTask);
     },
   );
