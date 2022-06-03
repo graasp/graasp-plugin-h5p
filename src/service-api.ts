@@ -50,6 +50,10 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   const { serviceMethod, serviceOptions, pathPrefix } = options;
 
+  if (!pathPrefix) {
+    throw new Error('H5P path prefix environment variable is not defined!');
+  }
+
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
 
