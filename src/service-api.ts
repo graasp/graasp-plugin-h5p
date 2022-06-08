@@ -11,12 +11,7 @@ import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync } from 'fastify';
 
 import { Actor, Item } from 'graasp';
-import {
-  FileTaskManager,
-  GraaspLocalFileItemOptions,
-  GraaspS3FileItemOptions,
-  ServiceMethod,
-} from 'graasp-plugin-file';
+import { FileTaskManager } from 'graasp-plugin-file';
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
@@ -26,19 +21,13 @@ import {
   MAX_NON_FILE_FIELDS,
   TMP_EXTRACT_DIR,
 } from './constants';
-import { H5PItemMissingExtraError, H5PItemNotFoundError, InvalidH5PFileError } from './errors';
-import { h5pImport, h5pServe } from './schemas';
-import { H5PExtra, PermissionLevel } from './types';
+import { InvalidH5PFileError } from './errors';
+import { h5pImport } from './schemas';
+import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
 import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
 const detectMimeType = util.promisify(magic.detectFile.bind(magic));
-
-export interface H5PPluginOptions {
-  pathPrefix: string;
-  serviceMethod: ServiceMethod;
-  serviceOptions: { s3: GraaspS3FileItemOptions; local: GraaspLocalFileItemOptions };
-}
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
   // get services from server instance
@@ -133,7 +122,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
       type: H5P_ITEM_TYPE,
       extra: {
-        [serviceMethod]: {
+        h5p: {
           h5pFilePath,
           contentFilePath,
         },
@@ -241,40 +230,46 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     },
   );
 
-  fastify.get<{ Params: { itemId: string; '*': string } }>(
-    '/h5p-content/:itemId/*', // use * notation to catch rest of the route
-    { schema: h5pServe },
-    async (request, reply) => {
-      const {
-        member,
-        log,
-        params: { itemId, '*': contentRoute }, // rest of route is renamed to parameter contentRoute
-      } = request;
-
-      // retrieve object (also checks for read permission)
-      const getItemTask = itemTaskManager.createGetTask<H5PExtra>(member, itemId);
-      const item = await taskRunner.runSingle<Item<H5PExtra>>(getItemTask);
-      if (item === null) {
-        throw new H5PItemNotFoundError(itemId);
-      }
-
-      const storageRoot = item.extra?.[serviceMethod]?.contentFilePath;
-      if (!storageRoot) {
-        throw new H5PItemMissingExtraError(item);
-      }
-
-      // sanitize content route parameter: remove any leading /, ./ or ../
-      const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
-      const filepath = path.join(storageRoot, safeContentRoute);
-
-      const dlFileTask = fileTaskManager.createDownloadFileTask(member, {
-        reply,
-        filepath,
-        itemId,
-      });
-      return await taskRunner.runSingle(dlFileTask);
-    },
-  );
+  /**
+   * H5P assets proxy server
+   * Can be used to add access control to h5p content files
+   * With the current architecture, the H5P libraries control the
+   * fetching so we can't pass the server cookie
+   */
+  // fastify.get<{ Params: { itemId: string; '*': string } }>(
+  //   '/h5p-content/:itemId/*', // use * notation to catch rest of the route
+  //   { schema: h5pServe },
+  //   async (request, reply) => {
+  //     const {
+  //       member,
+  //       log,
+  //       params: { itemId, '*': contentRoute }, // rest of route is renamed to parameter contentRoute
+  //     } = request;
+  //
+  //     // retrieve object (also checks for read permission)
+  //     const getItemTask = itemTaskManager.createGetTask<H5PExtra>(member, itemId);
+  //     const item = await taskRunner.runSingle<Item<H5PExtra>>(getItemTask);
+  //     if (item === null) {
+  //       throw new H5PItemNotFoundError(itemId);
+  //     }
+  //
+  //     const storageRoot = item.extra?.[serviceMethod]?.contentFilePath;
+  //     if (!storageRoot) {
+  //       throw new H5PItemMissingExtraError(item);
+  //     }
+  //
+  //     // sanitize content route parameter: remove any leading /, ./ or ../
+  //     const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
+  //     const filepath = path.join(storageRoot, safeContentRoute);
+  //
+  //     const dlFileTask = fileTaskManager.createDownloadFileTask(member, {
+  //       reply,
+  //       filepath,
+  //       itemId,
+  //     });
+  //     return await taskRunner.runSingle(dlFileTask);
+  //   },
+  // );
 };
 
 export default plugin;
