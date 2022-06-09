@@ -19,7 +19,7 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
     const h5pStorageRoot = path.join(serviceOptions.local.storageRootPath, pathPrefix);
     fastify.register(fastifyStatic, {
       root: h5pStorageRoot,
-      prefix: 'h5p-content',
+      prefix: `/${pathPrefix}`,
     });
   }
 };
