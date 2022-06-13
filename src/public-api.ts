@@ -1,7 +1,7 @@
 import path from 'path';
 
 import fastifyStatic from '@fastify/static';
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyReply } from 'fastify';
 
 import { ServiceMethod } from 'graasp-plugin-file';
 
@@ -20,6 +20,10 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
     fastify.register(fastifyStatic, {
       root: h5pStorageRoot,
       prefix: `/${pathPrefix}`,
+      decorateReply: false,
+      setHeaders: (response) => {
+        response.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+      },
     });
   }
 };
