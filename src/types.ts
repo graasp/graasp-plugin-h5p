@@ -18,6 +18,8 @@ export interface H5PPluginOptions {
  */
 export type H5PExtra = {
   h5p: {
+    /** storage ID */
+    contentId: string;
     /** relative path from root storage to the uploaded .h5p package */
     h5pFilePath: string;
     /** relative path from root storage to the assets folder */

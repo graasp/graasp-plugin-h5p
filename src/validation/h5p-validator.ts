@@ -21,6 +21,9 @@ export class H5PValidator {
   private buildManifestPath = (extractedContentDir: string) =>
     path.join(extractedContentDir, 'h5p.json');
 
+  // Allow uploads of H5P.org-approved file extensions, and h5p files themselves
+  private allowedExtensions = H5P.ALLOWED_FILE_EXTENSIONS.concat(['h5p']);
+
   /**
    * Checks whether a given file extension is allowed inside a .h5p package
    * @param extension A string representing the file extension (may or may not contain leading dot or be uppercase)
@@ -30,7 +33,7 @@ export class H5PValidator {
     const normalizedExtension = (
       extension[0] === '.' ? extension.slice(1) : extension
     ).toLowerCase();
-    return H5P.ALLOWED_FILE_EXTENSIONS.includes(normalizedExtension);
+    return this.allowedExtensions.includes(normalizedExtension);
   }
 
   /**
@@ -52,7 +55,12 @@ export class H5PValidator {
     const manifestJSON = await readFile(manifestPath, { encoding: 'utf-8' });
     const manifest = secureJSON.safeParse(manifestJSON);
     if (manifest === null || !this.isValidManifest(manifest)) {
-      return { isValid: false, error: 'Invalid h5p.json manifest file: \n\t' + this.isValidManifest.errors?.map(e => e.message)?.join("\n\t") ?? manifest };
+      return {
+        isValid: false,
+        error:
+          'Invalid h5p.json manifest file: \n\t' +
+            this.isValidManifest.errors?.map((e) => e.message)?.join('\n\t') ?? manifest,
+      };
     }
 
     // The 'preloadedDependencies' field must at least contain the main library of the package

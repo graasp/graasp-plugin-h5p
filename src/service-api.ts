@@ -43,12 +43,15 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     throw new Error('H5P path prefix environment variable is not defined!');
   }
 
-  if (pathPrefix.startsWith("/")) {
-    throw new Error('H5P path prefix should not start with a "/"!')
+  if (pathPrefix.startsWith('/')) {
+    throw new Error('H5P path prefix should not start with a "/"!');
   }
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
+
+  // Helper to build the root remote path
+  const buildRootPath = (contentId: string) => path.join(pathPrefix, contentId);
 
   // Helper to build the local or remote path of the .h5p file
   const buildH5PPath = (rootPath: string, contentId: string) =>
@@ -112,13 +115,15 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   /**
    * Creates a Graasp item for the uploaded H5P package
    * @param filename Name of the original H5P file
-   * @param h5pFilePath Path of the saved H5P file
-   * @param contentFilePath Root path of the extracted contents
+   * @param contentId Storage ID of the remote content
+   * @param remoteRootPath Root path on the remote storage
+   * @param member Actor member
+   * @param parentId Optional parent id of the newly created item
    */
   async function createH5PItem(
     filename: string,
-    h5pFilePath: string,
-    contentFilePath: string,
+    contentId: string,
+    remoteRootPath: string,
     member: Actor,
     parentId?: string,
   ): Promise<Item<H5PExtra>> {
@@ -127,8 +132,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       type: H5P_ITEM_TYPE,
       extra: {
         h5p: {
-          h5pFilePath,
-          contentFilePath,
+          contentId,
+          h5pFilePath: buildH5PPath(remoteRootPath, contentId),
+          contentFilePath: buildContentPath(remoteRootPath),
         },
       },
     };
@@ -180,7 +186,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
       const contentId = v4();
       const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
-      const remoteRootPath = path.join(pathPrefix, contentId);
+      const remoteRootPath = buildRootPath(contentId);
 
       await mkdir(targetFolder, { recursive: true });
 
@@ -205,8 +211,8 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
           const item = await createH5PItem(
             h5pFile.filename,
-            buildH5PPath(remoteRootPath, contentId),
-            buildContentPath(remoteRootPath),
+            contentId,
+            remoteRootPath,
             member,
             parentId,
           );
@@ -233,6 +239,47 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       // end of try-catch block for local storage cleanup
     },
   );
+
+  /**
+   * Delete H5P assets on item delete
+   */
+  const deleteItemTaskName = itemTaskManager.getDeleteTaskName();
+  taskRunner.setTaskPostHookHandler<Item<H5PExtra>>(deleteItemTaskName, async (item, actor) => {
+    if (item.type !== H5P_ITEM_TYPE) {
+      return;
+    }
+    const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
+      folderPath: buildRootPath(item.extra.h5p.contentId),
+    });
+    await taskRunner.runSingle(deleteTask);
+  });
+
+  /**
+   * Copy H5P assets on item copy
+   */
+  const copyItemTaskName = itemTaskManager.getCopyTaskName();
+  taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(copyItemTaskName, async (item, actor) => {
+    if (item.type !== H5P_ITEM_TYPE) {
+      return;
+    }
+    if (!item.extra?.h5p) {
+      throw new Error('Invalid state: missing previous H5P item extra on copy');
+    }
+
+    const contentId = v4();
+    const remoteRootPath = buildRootPath(contentId);
+    const copyTask = fileTaskManager.createCopyFolderTask(actor, {
+      originalFolderPath: buildRootPath(item.extra.h5p.contentId),
+      newFolderPath: remoteRootPath,
+    });
+    await taskRunner.runSingle(copyTask);
+
+    item.extra.h5p = {
+      contentId,
+      h5pFilePath: buildH5PPath(remoteRootPath, contentId),
+      contentFilePath: buildContentPath(remoteRootPath),
+    };
+  });
 
   /**
    * H5P assets proxy server
