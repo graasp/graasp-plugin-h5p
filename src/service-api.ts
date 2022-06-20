@@ -1,7 +1,6 @@
 import extract from 'extract-zip';
 import fs from 'fs';
 import { lstat, mkdir, readdir, rm } from 'fs/promises';
-import mmm from 'mmmagic';
 import path from 'path';
 import { pipeline } from 'stream/promises';
 import util from 'util';
@@ -26,9 +25,6 @@ import { h5pImport } from './schemas';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
 import { buildContentPath, buildH5PPath, buildRootPath } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
-
-const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
-const detectMimeType = util.promisify(magic.detectFile.bind(magic));
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
   // get services from server instance
@@ -82,15 +78,10 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           return [];
         }
 
-        // SAFE CAST
-        // we are guaranteed that the resulting `mimetype` is a string
-        // from the docs: "Result is a string, except when MAGIC_CONTINUE is set"
-        const mimetype = (await detectMimeType(childPath)) as string;
         const size = stats.size;
         const uploadTask = fileTaskManager.createUploadFileTask(member, {
           file: fs.createReadStream(childPath),
           filepath: childUploadPath,
-          mimetype,
           size,
         });
 

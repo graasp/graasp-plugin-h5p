@@ -1428,15 +1428,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mmmagic@npm:0.4.30":
-  version: 0.4.30
-  resolution: "@types/mmmagic@npm:0.4.30"
-  dependencies:
-    "@types/node": "*"
-  checksum: ce3dce1f3071b05bb34c455dd8fa94ad6b8ccee04e396044ab0df19658814f8bb83545fade4e78f8783093d57590205e5f66c262c947b7f5c639d2254a979c58
-  languageName: node
-  linkType: hard
-
 "@types/node@npm:*":
   version: 16.11.12
   resolution: "@types/node@npm:16.11.12"
@@ -3695,7 +3686,6 @@ __metadata:
     "@types/extract-zip": 2.0.1
     "@types/graasp": "github:graasp/graasp-types"
     "@types/jest": 27.0.1
-    "@types/mmmagic": 0.4.30
     "@types/uuid": 8.3.4
     "@typescript-eslint/eslint-plugin": 5.4.0
     "@typescript-eslint/parser": 5.4.0
@@ -3709,7 +3699,6 @@ __metadata:
     http-status-codes: 2.2.0
     husky: 7.0.4
     jest: 27.3.0
-    mmmagic: 0.5.3
     prettier: 2.5.1
     pretty-quick: 3.1.2
     secure-json-parse: 2.4.0
@@ -5275,16 +5264,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mmmagic@npm:0.5.3":
-  version: 0.5.3
-  resolution: "mmmagic@npm:0.5.3"
-  dependencies:
-    nan: ^2.13.2
-    node-gyp: latest
-  checksum: fa804bc3c49797c7c2d0616ecabd5e9234a934f2fe66c2d50d66d2e6ef455fdc83742770cd998a47cf01fcf00ad310af303d850a3d5ac5654ef810c0df01865d
-  languageName: node
-  linkType: hard
-
 "mri@npm:^1.1.5":
   version: 1.2.0
   resolution: "mri@npm:1.2.0"
@@ -5330,15 +5309,6 @@ __metadata:
     arrify: ^2.0.1
     minimatch: ^3.0.4
   checksum: bdb6a98dad4e919d9a1a2a0db872f44fa2337315f2fd5827d91ae005cf22f4425782bdfa97c10b80d567f0cb3c226c31f4e85f8f6a4a4be4facf9af0de1bb0c2
-  languageName: node
-  linkType: hard
-
-"nan@npm:^2.13.2":
-  version: 2.15.0
-  resolution: "nan@npm:2.15.0"
-  dependencies:
-    node-gyp: latest
-  checksum: 33e1bb4dfca447fe37d4bb5889be55de154828632c8d38646db67293a21afd61ed9909cdf1b886214a64707d935926c4e60e2b09de9edfc2ad58de31d6ce8f39
   languageName: node
   linkType: hard
 
