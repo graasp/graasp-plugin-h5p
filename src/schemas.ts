@@ -12,20 +12,6 @@ export const h5pImport = {
   },
 };
 
-export const h5pServe = {
-  params: {
-    itemId: {
-      $ref: 'http://graasp.org/#/definitions/uuid',
-    },
-    // content path (rest of route)
-    '*': {
-      type: 'string',
-    },
-  },
-  required: ['itemId', '*'],
-  additionalProperties: false,
-};
-
 export const h5pDownload = {
   params: {
     itemId: {

@@ -4,6 +4,11 @@
  */
 export namespace H5P {
   /**
+   * File extension of H5P packages (not dot-prefixed)
+   */
+  export const H5P_FILE_EXTENSION = 'h5p';
+
+  /**
    * File extensions that are allowed inside an H5P package
    */
   export const ALLOWED_FILE_EXTENSIONS = [

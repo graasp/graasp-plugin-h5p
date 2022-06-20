@@ -10,7 +10,7 @@ import { v4 } from 'uuid';
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync } from 'fastify';
 
-import { Actor, Item } from 'graasp';
+import { Actor, Item, Task } from 'graasp';
 import { FileTaskManager } from 'graasp-plugin-file';
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
@@ -24,6 +24,7 @@ import {
 import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
+import { buildContentPath, buildH5PPath, buildRootPath } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE); // don't set MAGIC_CONTINUE!
@@ -49,16 +50,6 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
-
-  // Helper to build the root remote path
-  const buildRootPath = (contentId: string) => path.join(pathPrefix, contentId);
-
-  // Helper to build the local or remote path of the .h5p file
-  const buildH5PPath = (rootPath: string, contentId: string) =>
-    path.join(rootPath, `${contentId}.h5p`);
-
-  // Helper to build the local or remote path of the h5p content root
-  const buildContentPath = (rootPath: string) => path.join(rootPath, 'content');
 
   /**
    * Uploads both the .h5p and the package content into public storage
@@ -163,13 +154,16 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       // validate write permission in parent if it exists
       if (parentId) {
         const getParentTask = itemTaskManager.createGetTask(member, parentId);
-        const parent = await taskRunner.runSingle(getParentTask);
-        const getMembershipTask = itemMembershipTaskManager.createGetMemberItemMembershipTask(
-          member,
-          { item: parent, validatePermission: PermissionLevel.Write },
-        );
+        const getMembershipTask =
+          itemMembershipTaskManager.createGetMemberItemMembershipTask(member);
+        getMembershipTask.getInput = () => ({
+          item: getParentTask.result,
+          validatePermission: PermissionLevel.Write,
+        });
+        // type cast: force variance on broader type
+        const tasks = [getParentTask, getMembershipTask] as Task<Actor, unknown>[];
         // getMembershipTask will throw if permission is not met
-        await taskRunner.runSingle(getMembershipTask);
+        await taskRunner.runSingleSequence(tasks);
       }
 
       // WARNING: cannot destructure { file } = request, which triggers an undefined TypeError internally
@@ -186,7 +180,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
       const contentId = v4();
       const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
-      const remoteRootPath = buildRootPath(contentId);
+      const remoteRootPath = buildRootPath(pathPrefix, contentId);
 
       await mkdir(targetFolder, { recursive: true });
 
@@ -249,7 +243,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       return;
     }
     const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
-      folderPath: buildRootPath(item.extra.h5p.contentId),
+      folderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
     });
     await taskRunner.runSingle(deleteTask);
   });
@@ -267,9 +261,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     }
 
     const contentId = v4();
-    const remoteRootPath = buildRootPath(contentId);
+    const remoteRootPath = buildRootPath(pathPrefix, contentId);
     const copyTask = fileTaskManager.createCopyFolderTask(actor, {
-      originalFolderPath: buildRootPath(item.extra.h5p.contentId),
+      originalFolderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
       newFolderPath: remoteRootPath,
     });
     await taskRunner.runSingle(copyTask);
@@ -280,47 +274,6 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       contentFilePath: buildContentPath(remoteRootPath),
     };
   });
-
-  /**
-   * H5P assets proxy server
-   * Can be used to add access control to h5p content files
-   * With the current architecture, the H5P libraries control the
-   * fetching so we can't pass the server cookie
-   */
-  // fastify.get<{ Params: { itemId: string; '*': string } }>(
-  //   '/h5p-content/:itemId/*', // use * notation to catch rest of the route
-  //   { schema: h5pServe },
-  //   async (request, reply) => {
-  //     const {
-  //       member,
-  //       log,
-  //       params: { itemId, '*': contentRoute }, // rest of route is renamed to parameter contentRoute
-  //     } = request;
-  //
-  //     // retrieve object (also checks for read permission)
-  //     const getItemTask = itemTaskManager.createGetTask<H5PExtra>(member, itemId);
-  //     const item = await taskRunner.runSingle<Item<H5PExtra>>(getItemTask);
-  //     if (item === null) {
-  //       throw new H5PItemNotFoundError(itemId);
-  //     }
-  //
-  //     const storageRoot = item.extra?.[serviceMethod]?.contentFilePath;
-  //     if (!storageRoot) {
-  //       throw new H5PItemMissingExtraError(item);
-  //     }
-  //
-  //     // sanitize content route parameter: remove any leading /, ./ or ../
-  //     const safeContentRoute = contentRoute.replace(/^(?:\.*\/)+/, '');
-  //     const filepath = path.join(storageRoot, safeContentRoute);
-  //
-  //     const dlFileTask = fileTaskManager.createDownloadFileTask(member, {
-  //       reply,
-  //       filepath,
-  //       itemId,
-  //     });
-  //     return await taskRunner.runSingle(dlFileTask);
-  //   },
-  // );
 };
 
 export default plugin;

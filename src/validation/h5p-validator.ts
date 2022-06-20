@@ -22,7 +22,7 @@ export class H5PValidator {
     path.join(extractedContentDir, 'h5p.json');
 
   // Allow uploads of H5P.org-approved file extensions, and h5p files themselves
-  private allowedExtensions = H5P.ALLOWED_FILE_EXTENSIONS.concat(['h5p']);
+  private allowedExtensions = H5P.ALLOWED_FILE_EXTENSIONS.concat([H5P.H5P_FILE_EXTENSION]);
 
   /**
    * Checks whether a given file extension is allowed inside a .h5p package
