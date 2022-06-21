@@ -1,7 +1,7 @@
 import path from 'path';
 
 import fastifyStatic from '@fastify/static';
-import { FastifyPluginAsync, FastifyReply } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 
 import { ServiceMethod } from 'graasp-plugin-file';
 

@@ -1,9 +1,9 @@
 import extract from 'extract-zip';
 import fs from 'fs';
 import { lstat, mkdir, readdir, rm } from 'fs/promises';
+import mime from 'mime';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import util from 'util';
 import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
@@ -14,6 +14,7 @@ import { FileTaskManager } from 'graasp-plugin-file';
 import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
+  DEFAULT_MIME_TYPE,
   H5P_ITEM_TYPE,
   MAX_FILES,
   MAX_FILE_SIZE,
@@ -78,11 +79,13 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           return [];
         }
 
+        const mimetype = mime.getType(ext) ?? DEFAULT_MIME_TYPE;
         const size = stats.size;
         const uploadTask = fileTaskManager.createUploadFileTask(member, {
           file: fs.createReadStream(childPath),
           filepath: childUploadPath,
           size,
+          mimetype,
         });
 
         await taskRunner.runSingle(uploadTask);

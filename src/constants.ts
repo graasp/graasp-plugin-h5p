@@ -6,3 +6,5 @@ export const MAX_FILES = 1;
 
 export const H5P_ITEM_TYPE = 'h5p';
 export const H5P_FILE_MIME_TYPE = 'application/zip';
+
+export const DEFAULT_MIME_TYPE = 'application/octet-stream';
