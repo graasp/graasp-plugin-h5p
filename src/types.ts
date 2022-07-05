@@ -44,3 +44,8 @@ export enum PermissionLevel {
   Write = 'write',
   Admin = 'admin',
 }
+
+/** Helper type for fastify-static */
+export interface FastifyStaticReply {
+  setHeader: (key: string, value: string) => void;
+}

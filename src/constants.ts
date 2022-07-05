@@ -9,5 +9,5 @@ export const H5P_FILE_MIME_TYPE = 'application/zip';
 
 export const DEFAULT_MIME_TYPE = 'application/octet-stream';
 
-export const DEFAULT_H5P_CONTENT_ROUTE = 'h5p-content';
-export const DEFAULT_H5P_ASSETS_ROUTE = 'h5p-assets';
+export const DEFAULT_H5P_CONTENT_ROUTE = '/h5p-content/';
+export const DEFAULT_H5P_ASSETS_ROUTE = '/h5p-assets/';

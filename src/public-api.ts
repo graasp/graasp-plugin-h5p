@@ -1,14 +1,25 @@
 import path from 'path';
 
 import fastifyStatic from '@fastify/static';
-import { FastifyPluginAsync, FastifyReply } from 'fastify';
+import { FastifyPluginAsync } from 'fastify';
 
 import { ServiceMethod } from 'graasp-plugin-file';
 
 import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from './constants';
-import { H5PPluginOptions } from './types';
+import { FastifyStaticReply, H5PPluginOptions } from './types';
+
+function validatePluginOptions(options: H5PPluginOptions) {
+  if (options.routes) {
+    Object.keys(options.routes).forEach((route) => {
+      if (!route.startsWith('/') || !route.endsWith('/')) {
+        throw new Error("H5P routes must start and end with a forward slash ('/') !");
+      }
+    });
+  }
+}
 
 const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
+  validatePluginOptions(options);
   const { serviceMethod, serviceOptions, pathPrefix, routes } = options;
 
   /**
@@ -18,8 +29,8 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
    */
   if (serviceMethod === ServiceMethod.LOCAL) {
     /** Helper to set CORS headers policy */
-    const setHeaders = (response: FastifyReply) => {
-      response.header('Cross-Origin-Resource-Policy', 'same-site');
+    const setHeaders = (response: FastifyStaticReply) => {
+      response.setHeader('Cross-Origin-Resource-Policy', 'same-site');
     };
 
     // hack to serve the "dist" folder of package "h5p-standalone"
