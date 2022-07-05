@@ -8,9 +8,17 @@ import {
  * Plugin options
  */
 export interface H5PPluginOptions {
-  pathPrefix: string;
+  /** storage type */
   serviceMethod: ServiceMethod;
+  /** storage options, given storage type */
   serviceOptions: { s3: GraaspS3FileItemOptions; local: GraaspLocalFileItemOptions };
+  /** path prefix of H5P content on storage */
+  pathPrefix: string;
+  /** optional: if serviceMethod is set to 'local', H5P assets and content will be mounted at the following routes (relative to the mount point of this plugin) otherwise defaults are used {@link file://./constants.ts} */
+  routes?: {
+    assets: string;
+    content: string;
+  };
 }
 
 /**

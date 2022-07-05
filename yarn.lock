@@ -3704,6 +3704,7 @@ __metadata:
     fastify: 3.29.0
     graasp-plugin-file: "github:graasp/graasp-plugin-file"
     graasp-plugin-file-item: "github:graasp/graasp-plugin-file-item"
+    h5p-standalone: 3.5.1
     http-status-codes: 2.2.0
     husky: 7.0.4
     jest: 27.3.0
@@ -3733,6 +3734,13 @@ __metadata:
   version: 4.2.8
   resolution: "graceful-fs@npm:4.2.8"
   checksum: 5d224c8969ad0581d551dfabdb06882706b31af2561bd5e2034b4097e67cc27d05232849b8643866585fd0a41c7af152950f8776f4dd5579e9853733f31461c6
+  languageName: node
+  linkType: hard
+
+"h5p-standalone@npm:3.5.1":
+  version: 3.5.1
+  resolution: "h5p-standalone@npm:3.5.1"
+  checksum: cf291edf47db2c76e2adb3f9e1ae57c164280187b48b821793d91fbc53e5767408f639d5127d72ce68e523722e6519d309b93b310edf454bb7617d26749c6608
   languageName: node
   linkType: hard
 
