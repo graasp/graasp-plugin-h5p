@@ -11,7 +11,7 @@ export const buildRootPath = (pathPrefix: string, contentId: string) =>
 /**
  * Helper to build the local or remote path of the .h5p file
  */
-export const buildH5PPath = (rootPath: string, contentId: string) =>
+export const buildH5PPath = (rootPath: string, contentId: string = rootPath) =>
   path.join(rootPath, `${contentId}.${H5P.H5P_FILE_EXTENSION}`);
 
 /**

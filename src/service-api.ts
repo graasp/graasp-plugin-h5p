@@ -118,8 +118,8 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       extra: {
         h5p: {
           contentId,
-          h5pFilePath: buildH5PPath(remoteRootPath, contentId),
-          contentFilePath: buildContentPath(remoteRootPath),
+          h5pFilePath: buildH5PPath(contentId), // <contentId>/<contentId>.h5p
+          contentFilePath: buildContentPath(contentId), // <contentId>/content
         },
       },
     };
