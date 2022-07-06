@@ -1,11 +1,14 @@
 import { FileTaskManager } from 'graasp-plugin-file';
 
-import { H5PService } from './interfaces/h5p-service';
+import { H5PTaskManager } from './task-manager';
 
-export class Service implements H5PService {
-  public fileTaskManager: FileTaskManager;
+/**
+ * Implementation for the H5P service
+ */
+export class H5PService {
+  public taskManager: H5PTaskManager;
 
-  constructor(fileTaskManager: FileTaskManager) {
-    this.fileTaskManager = fileTaskManager;
+  constructor(fileTaskManager: FileTaskManager, pathPrefix: string) {
+    this.taskManager = new H5PTaskManager(fileTaskManager, pathPrefix);
   }
 }

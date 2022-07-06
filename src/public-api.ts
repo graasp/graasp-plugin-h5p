@@ -7,7 +7,7 @@ import fp from 'fastify-plugin';
 import { FileTaskManager, ServiceMethod } from 'graasp-plugin-file';
 
 import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from './constants';
-import { Service } from './service';
+import { H5PService } from './service';
 import { FastifyStaticReply, H5PPluginOptions } from './types';
 import { validatePluginOptions } from './utils';
 
@@ -16,7 +16,7 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
   const { serviceMethod, serviceOptions, pathPrefix, routes } = options;
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
-  const h5pService = new Service(fileTaskManager);
+  const h5pService = new H5PService(fileTaskManager, pathPrefix);
   fastify.decorate('h5p', h5pService);
 
   /**

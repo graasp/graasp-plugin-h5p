@@ -24,7 +24,7 @@ import {
 } from './constants';
 import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
-import { Service } from './service';
+import { H5PService } from './service';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
 import { buildContentPath, buildH5PPath, buildRootPath, validatePluginOptions } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
@@ -43,7 +43,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
 
-  const h5pService = new Service(fileTaskManager);
+  const h5pService = new H5PService(fileTaskManager, pathPrefix);
   fastify.decorate('h5p', h5pService);
 
   /**
