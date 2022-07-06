@@ -8,6 +8,7 @@ import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 
 import { Actor, Item, Task } from 'graasp';
 import { FileTaskManager } from 'graasp-plugin-file';
@@ -23,6 +24,7 @@ import {
 } from './constants';
 import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
+import { Service } from './service';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
 import { buildContentPath, buildH5PPath, buildRootPath } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
@@ -47,6 +49,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
+
+  const h5pService = new Service(fileTaskManager);
+  fastify.decorate('h5p', h5pService);
 
   /**
    * Uploads both the .h5p and the package content into public storage
@@ -108,7 +113,6 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   async function createH5PItem(
     filename: string,
     contentId: string,
-    remoteRootPath: string,
     member: Actor,
     parentId?: string,
   ): Promise<Item<H5PExtra>> {
@@ -127,147 +131,148 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     return taskRunner.runSingleSequence(create) as Promise<Item<H5PExtra>>;
   }
 
-  fastify.register(fastifyMultipart, {
-    limits: {
-      fields: MAX_NON_FILE_FIELDS,
-      files: MAX_FILES,
-      fileSize: MAX_FILE_SIZE,
-    },
-  });
+  /*
+    we create an artificial plugin scope, so that fastify-multipart does not conflict
+    with other instances since we use fp to remove the outer scope
+  */
+  await fastify.register(async (fastify) => {
+    fastify.register(fastifyMultipart, {
+      limits: {
+        fields: MAX_NON_FILE_FIELDS,
+        files: MAX_FILES,
+        fileSize: MAX_FILE_SIZE,
+      },
+    });
 
-  fastify.post<{ Querystring: { parentId?: string } }>(
-    '/h5p-import',
-    { schema: h5pImport },
-    async (request) => {
-      const {
-        member,
-        log,
-        query: { parentId },
-      } = request;
+    fastify.post<{ Querystring: { parentId?: string } }>(
+      '/h5p-import',
+      { schema: h5pImport },
+      async (request) => {
+        const {
+          member,
+          log,
+          query: { parentId },
+        } = request;
 
-      // validate write permission in parent if it exists
-      if (parentId) {
-        const getParentTask = itemTaskManager.createGetTask(member, parentId);
-        const getMembershipTask =
-          itemMembershipTaskManager.createGetMemberItemMembershipTask(member);
-        getMembershipTask.getInput = () => ({
-          item: getParentTask.result,
-          validatePermission: PermissionLevel.Write,
-        });
-        // type cast: force variance on broader type
-        const tasks = [getParentTask, getMembershipTask] as Task<Actor, unknown>[];
-        // getMembershipTask will throw if permission is not met
-        await taskRunner.runSingleSequence(tasks);
+        // validate write permission in parent if it exists
+        if (parentId) {
+          const getParentTask = itemTaskManager.createGetTask(member, parentId);
+          const getMembershipTask =
+            itemMembershipTaskManager.createGetMemberItemMembershipTask(member);
+          getMembershipTask.getInput = () => ({
+            item: getParentTask.result,
+            validatePermission: PermissionLevel.Write,
+          });
+          // type cast: force variance on broader type
+          const tasks = [getParentTask, getMembershipTask] as Task<Actor, unknown>[];
+          // getMembershipTask will throw if permission is not met
+          await taskRunner.runSingleSequence(tasks);
+        }
+
+        // WARNING: cannot destructure { file } = request, which triggers an undefined TypeError internally
+        // (maybe getter performs side-effect on promise handler?)
+        // so use request.file notation instead
+        const h5pFile = await request.file();
+
+        /*
+        // uppy tries to guess the mime type but fails and falls back to application/octet-stream, so we disable this check for now
+        if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
+          throw new InvalidH5PFileError(h5pFile.mimetype);
+        }
+        */
+
+        const contentId = v4();
+        const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
+        const remoteRootPath = buildRootPath(pathPrefix, contentId);
+
+        await mkdir(targetFolder, { recursive: true });
+
+        // try-catch block for local storage cleanup
+        try {
+          const savePath = buildH5PPath(targetFolder, contentId);
+          const contentFolder = buildContentPath(targetFolder);
+
+          // save H5P file
+          await pipeline(h5pFile.file, fs.createWriteStream(savePath));
+          await extract(savePath, { dir: contentFolder });
+
+          const result = await h5pValidator.validatePackage(contentFolder);
+          if (!result.isValid) {
+            throw new InvalidH5PFileError(result.error);
+          }
+
+          // try-catch block for remote storage cleanup
+          try {
+            // upload whole folder to public storage
+            await uploadH5P(targetFolder, remoteRootPath, member);
+            return await createH5PItem(h5pFile.filename, contentId, member, parentId);
+          } catch (error) {
+            // delete public storage folder of this H5P if upload or creation fails
+            fileTaskManager.createDeleteFolderTask(member, {
+              folderPath: remoteRootPath,
+            });
+
+            // remove local temp folder, before rethrowing
+            rm(targetFolder, { recursive: true });
+
+            // log and rethrow to let fastify handle the error response
+            log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
+            log.error(error);
+            throw error;
+          }
+          // end of try-catch block for remote storage cleanup
+        } finally {
+          // in all cases, remove local temp folder
+          rm(targetFolder, { recursive: true });
+        }
+        // end of try-catch block for local storage cleanup
+      },
+    );
+
+    /**
+     * Delete H5P assets on item delete
+     */
+    const deleteItemTaskName = itemTaskManager.getDeleteTaskName();
+    taskRunner.setTaskPostHookHandler<Item<H5PExtra>>(deleteItemTaskName, async (item, actor) => {
+      if (item.type !== H5P_ITEM_TYPE) {
+        return;
       }
+      const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
+        folderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
+      });
+      await taskRunner.runSingle(deleteTask);
+    });
 
-      // WARNING: cannot destructure { file } = request, which triggers an undefined TypeError internally
-      // (maybe getter performs side-effect on promise handler?)
-      // so use request.file notation instead
-      const h5pFile = await request.file();
-
-      /*
-      // uppy tries to guess the mime type but fails and falls back to application/octet-stream, so we disable this check for now
-      if (h5pFile.mimetype !== H5P_FILE_MIME_TYPE) {
-        throw new InvalidH5PFileError(h5pFile.mimetype);
+    /**
+     * Copy H5P assets on item copy
+     */
+    const copyItemTaskName = itemTaskManager.getCopyTaskName();
+    taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(copyItemTaskName, async (item, actor) => {
+      if (item.type !== H5P_ITEM_TYPE) {
+        return;
       }
-      */
+      if (!item.extra?.h5p) {
+        throw new Error('Invalid state: missing previous H5P item extra on copy');
+      }
 
       const contentId = v4();
-      const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
       const remoteRootPath = buildRootPath(pathPrefix, contentId);
+      const copyTask = fileTaskManager.createCopyFolderTask(actor, {
+        originalFolderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
+        newFolderPath: remoteRootPath,
+      });
+      await taskRunner.runSingle(copyTask);
 
-      await mkdir(targetFolder, { recursive: true });
-
-      // try-catch block for local storage cleanup
-      try {
-        const savePath = buildH5PPath(targetFolder, contentId);
-        const contentFolder = buildContentPath(targetFolder);
-
-        // save H5P file
-        await pipeline(h5pFile.file, fs.createWriteStream(savePath));
-        await extract(savePath, { dir: contentFolder });
-
-        const result = await h5pValidator.validatePackage(contentFolder);
-        if (!result.isValid) {
-          throw new InvalidH5PFileError(result.error);
-        }
-
-        // try-catch block for remote storage cleanup
-        try {
-          // upload whole folder to public storage
-          await uploadH5P(targetFolder, remoteRootPath, member);
-
-          const item = await createH5PItem(
-            h5pFile.filename,
-            contentId,
-            remoteRootPath,
-            member,
-            parentId,
-          );
-          return item;
-        } catch (error) {
-          // delete public storage folder of this H5P if upload or creation fails
-          fileTaskManager.createDeleteFolderTask(member, {
-            folderPath: remoteRootPath,
-          });
-
-          // remove local temp folder, before rethrowing
-          rm(targetFolder, { recursive: true });
-
-          // log and rethrow to let fastify handle the error response
-          log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
-          log.error(error);
-          throw error;
-        }
-        // end of try-catch block for remote storage cleanup
-      } finally {
-        // in all cases, remove local temp folder
-        rm(targetFolder, { recursive: true });
-      }
-      // end of try-catch block for local storage cleanup
-    },
-  );
-
-  /**
-   * Delete H5P assets on item delete
-   */
-  const deleteItemTaskName = itemTaskManager.getDeleteTaskName();
-  taskRunner.setTaskPostHookHandler<Item<H5PExtra>>(deleteItemTaskName, async (item, actor) => {
-    if (item.type !== H5P_ITEM_TYPE) {
-      return;
-    }
-    const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
-      folderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
+      item.extra.h5p = {
+        contentId,
+        h5pFilePath: buildH5PPath(remoteRootPath, contentId),
+        contentFilePath: buildContentPath(remoteRootPath),
+      };
     });
-    await taskRunner.runSingle(deleteTask);
-  });
-
-  /**
-   * Copy H5P assets on item copy
-   */
-  const copyItemTaskName = itemTaskManager.getCopyTaskName();
-  taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(copyItemTaskName, async (item, actor) => {
-    if (item.type !== H5P_ITEM_TYPE) {
-      return;
-    }
-    if (!item.extra?.h5p) {
-      throw new Error('Invalid state: missing previous H5P item extra on copy');
-    }
-
-    const contentId = v4();
-    const remoteRootPath = buildRootPath(pathPrefix, contentId);
-    const copyTask = fileTaskManager.createCopyFolderTask(actor, {
-      originalFolderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
-      newFolderPath: remoteRootPath,
-    });
-    await taskRunner.runSingle(copyTask);
-
-    item.extra.h5p = {
-      contentId,
-      h5pFilePath: buildH5PPath(remoteRootPath, contentId),
-      contentFilePath: buildContentPath(remoteRootPath),
-    };
   });
 };
 
-export default plugin;
+export default fp(plugin, {
+  fastify: '3.x',
+  name: 'graasp-h5p',
+});
