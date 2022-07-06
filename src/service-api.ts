@@ -26,7 +26,13 @@ import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { Service } from './service';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
-import { buildContentPath, buildH5PPath, buildRootPath, buildRootRoute } from './utils';
+import {
+  buildContentPath,
+  buildH5PPath,
+  buildRootPath,
+  buildRootRoute,
+  validatePluginOptions,
+} from './utils';
 import { H5PValidator } from './validation/h5p-validator';
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
@@ -37,15 +43,8 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     taskRunner,
   } = fastify;
 
+  validatePluginOptions(options);
   const { serviceMethod, serviceOptions, pathPrefix } = options;
-
-  if (!pathPrefix) {
-    throw new Error('H5P path prefix environment variable is not defined!');
-  }
-
-  if (pathPrefix.startsWith('/')) {
-    throw new Error('H5P path prefix should not start with a "/"!');
-  }
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
@@ -278,5 +277,5 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
 export default fp(plugin, {
   fastify: '3.x',
-  name: 'graasp-h5p',
+  name: 'graasp-plugin-h5p',
 });

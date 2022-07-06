@@ -2,25 +2,22 @@ import path from 'path';
 
 import fastifyStatic from '@fastify/static';
 import { FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
 
-import { ServiceMethod } from 'graasp-plugin-file';
+import { FileTaskManager, ServiceMethod } from 'graasp-plugin-file';
 
 import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from './constants';
+import { Service } from './service';
 import { FastifyStaticReply, H5PPluginOptions } from './types';
-
-function validatePluginOptions(options: H5PPluginOptions) {
-  if (options.routes) {
-    Object.keys(options.routes).forEach((route) => {
-      if (!route.startsWith('/') || !route.endsWith('/')) {
-        throw new Error("H5P routes must start and end with a forward slash ('/') !");
-      }
-    });
-  }
-}
+import { validatePluginOptions } from './utils';
 
 const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
   validatePluginOptions(options);
   const { serviceMethod, serviceOptions, pathPrefix, routes } = options;
+
+  const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
+  const h5pService = new Service(fileTaskManager);
+  fastify.decorate('h5p', h5pService);
 
   /**
    * In local storage mode, proxy serve the H5P content files
@@ -52,4 +49,7 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
   }
 };
 
-export default publicPlugin;
+export default fp(publicPlugin, {
+  fastify: '3.x',
+  name: 'graasp-plugin-h5p.public',
+});
