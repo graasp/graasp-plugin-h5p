@@ -26,7 +26,7 @@ import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { Service } from './service';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
-import { buildContentPath, buildH5PPath, buildRootPath } from './utils';
+import { buildContentPath, buildH5PPath, buildRootPath, buildRootRoute } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
 
 const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
@@ -103,6 +103,20 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   }
 
   /**
+   * Helper to create H5P extra
+   */
+  function buildH5PExtra(contentId: string): H5PExtra {
+    const rootRoute = buildRootRoute(pathPrefix, contentId);
+    return {
+      h5p: {
+        contentId,
+        h5pFilePath: buildH5PPath(rootRoute, contentId),
+        contentFilePath: buildContentPath(rootRoute),
+      },
+    };
+  }
+
+  /**
    * Creates a Graasp item for the uploaded H5P package
    * @param filename Name of the original H5P file
    * @param contentId Storage ID of the remote content
@@ -119,13 +133,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     const metadata = {
       name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
       type: H5P_ITEM_TYPE,
-      extra: {
-        h5p: {
-          contentId,
-          h5pFilePath: buildH5PPath(contentId), // <contentId>/<contentId>.h5p
-          contentFilePath: buildContentPath(contentId), // <contentId>/content
-        },
-      },
+      extra: buildH5PExtra(contentId),
     };
     const create = itemTaskManager.createCreateTaskSequence(member, metadata, parentId);
     return taskRunner.runSingleSequence(create) as Promise<Item<H5PExtra>>;
@@ -263,11 +271,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       });
       await taskRunner.runSingle(copyTask);
 
-      item.extra.h5p = {
-        contentId,
-        h5pFilePath: buildH5PPath(remoteRootPath, contentId),
-        contentFilePath: buildContentPath(remoteRootPath),
-      };
+      item.extra.h5p = buildH5PExtra(contentId).h5p;
     });
   });
 };
