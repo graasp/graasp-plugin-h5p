@@ -16,6 +16,7 @@ import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
   DEFAULT_MIME_TYPE,
+  H5P_FILE_DOT_EXTENSION,
   H5P_ITEM_TYPE,
   MAX_FILES,
   MAX_FILE_SIZE,
@@ -259,15 +260,27 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         throw new Error('Invalid state: missing previous H5P item extra on copy');
       }
 
-      const contentId = v4();
-      const remoteRootPath = buildRootPath(pathPrefix, contentId);
-      const copyTask = fileTaskManager.createCopyFolderTask(actor, {
-        originalFolderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
-        newFolderPath: remoteRootPath,
-      });
-      await taskRunner.runSingle(copyTask);
+      const baseName = path.basename(item.name, H5P_FILE_DOT_EXTENSION);
+      const copySuffix = '-1';
+      const newName = `${baseName}${copySuffix}${H5P_FILE_DOT_EXTENSION}`;
 
-      item.extra.h5p = buildH5PExtra(contentId, item.name).h5p;
+      const newContentId = v4();
+      const remoteRootPath = buildRootPath(pathPrefix, newContentId);
+
+      // copy .h5p file
+      const copyH5PTask = fileTaskManager.createCopyFileTask(actor, {
+        originalPath: path.join(pathPrefix, item.extra.h5p.h5pFilePath),
+        newFilePath: buildH5PPath(remoteRootPath, newName),
+      });
+      // copy content folder
+      const copyContentTask = fileTaskManager.createCopyFolderTask(actor, {
+        originalFolderPath: path.join(pathPrefix, item.extra.h5p.contentFilePath),
+        newFolderPath: buildContentPath(remoteRootPath),
+      });
+
+      await taskRunner.runSingleSequence([copyH5PTask, copyContentTask]);
+      item.name = newName;
+      item.extra.h5p = buildH5PExtra(newContentId, newName).h5p;
     });
   });
 };
