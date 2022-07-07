@@ -98,11 +98,11 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   /**
    * Helper to create H5P extra
    */
-  function buildH5PExtra(contentId: string): H5PExtra {
+  function buildH5PExtra(contentId: string, filename: string): H5PExtra {
     return {
       h5p: {
         contentId,
-        h5pFilePath: buildH5PPath(contentId, contentId), // <contentId>/<contentId>.h5p
+        h5pFilePath: buildH5PPath(contentId, filename), // <contentId>/<filename>.h5p
         contentFilePath: buildContentPath(contentId), // <contentId>/content
       },
     };
@@ -125,7 +125,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     const metadata = {
       name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
       type: H5P_ITEM_TYPE,
-      extra: buildH5PExtra(contentId),
+      extra: buildH5PExtra(contentId, filename),
     };
     const create = itemTaskManager.createCreateTaskSequence(member, metadata, parentId);
     return taskRunner.runSingleSequence(create) as Promise<Item<H5PExtra>>;
@@ -189,7 +189,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
         // try-catch block for local storage cleanup
         try {
-          const savePath = buildH5PPath(targetFolder, contentId);
+          const savePath = buildH5PPath(targetFolder, h5pFile.filename);
           const contentFolder = buildContentPath(targetFolder);
 
           // save H5P file
@@ -248,8 +248,12 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
      */
     const copyItemTaskName = itemTaskManager.getCopyTaskName();
     taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(copyItemTaskName, async (item, actor) => {
+      // only execute this handler for H5P item types
       if (item.type !== H5P_ITEM_TYPE) {
         return;
+      }
+      if (!item.name) {
+        throw new Error('Invalid state: missing previous H5P item name on copy');
       }
       if (!item.extra?.h5p) {
         throw new Error('Invalid state: missing previous H5P item extra on copy');
@@ -263,7 +267,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       });
       await taskRunner.runSingle(copyTask);
 
-      item.extra.h5p = buildH5PExtra(contentId).h5p;
+      item.extra.h5p = buildH5PExtra(contentId, item.name).h5p;
     });
   });
 };
