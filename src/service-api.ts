@@ -111,7 +111,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
   /**
    * Creates a Graasp item for the uploaded H5P package
-   * @param filename Name of the original H5P file
+   * @param filename Name of the original H5P file WITHOUT EXTENSION
    * @param contentId Storage ID of the remote content
    * @param remoteRootPath Root path on the remote storage
    * @param member Actor member
@@ -124,7 +124,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     parentId?: string,
   ): Promise<Item<H5PExtra>> {
     const metadata = {
-      name: filename.substring(0, ORIGINAL_FILENAME_TRUNCATE_LIMIT),
+      name: buildH5PPath('', filename),
       type: H5P_ITEM_TYPE,
       extra: buildH5PExtra(contentId, filename),
     };
@@ -187,10 +187,11 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         const remoteRootPath = buildRootPath(pathPrefix, contentId);
 
         await mkdir(targetFolder, { recursive: true });
+        const baseName = path.basename(h5pFile.filename, H5P_FILE_DOT_EXTENSION);
 
         // try-catch block for local storage cleanup
         try {
-          const savePath = buildH5PPath(targetFolder, h5pFile.filename);
+          const savePath = buildH5PPath(targetFolder, baseName);
           const contentFolder = buildContentPath(targetFolder);
 
           // save H5P file
@@ -206,7 +207,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           try {
             // upload whole folder to public storage
             await uploadH5P(targetFolder, remoteRootPath, member);
-            return await createH5PItem(h5pFile.filename, contentId, member, parentId);
+            return await createH5PItem(baseName, contentId, member, parentId);
           } catch (error) {
             // delete public storage folder of this H5P if upload or creation fails
             fileTaskManager.createDeleteFolderTask(member, {
@@ -262,7 +263,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
       const baseName = path.basename(item.name, H5P_FILE_DOT_EXTENSION);
       const copySuffix = '-1';
-      const newName = `${baseName}${copySuffix}${H5P_FILE_DOT_EXTENSION}`;
+      const newName = `${baseName}${copySuffix}`;
 
       const newContentId = v4();
       const remoteRootPath = buildRootPath(pathPrefix, newContentId);
@@ -279,7 +280,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
       });
 
       await taskRunner.runSingleSequence([copyH5PTask, copyContentTask]);
-      item.name = newName;
+      item.name = buildH5PPath('', newName);
       item.extra.h5p = buildH5PExtra(newContentId, newName).h5p;
     });
   });
