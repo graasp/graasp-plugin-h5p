@@ -19,7 +19,7 @@ export function validatePluginOptions(options: H5PPluginOptions) {
   }
 
   if (routes) {
-    Object.keys(routes).forEach((route) => {
+    Object.values(routes).forEach((route) => {
       if (!route.startsWith('/') || !route.endsWith('/')) {
         throw new Error("H5P routes must start and end with a forward slash ('/') !");
       }

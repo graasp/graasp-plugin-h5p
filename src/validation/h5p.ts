@@ -52,7 +52,6 @@ export namespace H5P {
     'xlsx',
     'xml',
     'md',
-    'textile',
     'vtt',
   ];
 

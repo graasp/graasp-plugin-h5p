@@ -55,11 +55,12 @@ export class H5PValidator {
     const manifestJSON = await readFile(manifestPath, { encoding: 'utf-8' });
     const manifest = secureJSON.safeParse(manifestJSON);
     if (manifest === null || !this.isValidManifest(manifest)) {
+      const errors = this.isValidManifest.errors
+        ?.map((e) => `${e.instancePath && `${path.basename(e.instancePath)} `}${e.message}`)
+        ?.join('\n\t');
       return {
         isValid: false,
-        error:
-          'Invalid h5p.json manifest file: \n\t' +
-            this.isValidManifest.errors?.map((e) => e.message)?.join('\n\t') ?? manifest,
+        error: `Invalid h5p.json manifest file: ${errors}`,
       };
     }
 

@@ -227,8 +227,8 @@ export const h5pManifestSchema: JSONSchemaType<H5P.Manifest> = {
         type: 'object',
         properties: {
           machineName: { type: 'string' },
-          majorVersion: { type: ['integer', 'string'] },
-          minorVersion: { type: ['integer', 'string'] },
+          majorVersion: { anyOf: [{ type: 'integer' }, { type: 'string' }] },
+          minorVersion: { anyOf: [{ type: 'integer' }, { type: 'string' }] },
         },
         required: ['machineName', 'majorVersion', 'minorVersion'],
       },
@@ -309,48 +309,6 @@ export const h5pManifestSchema: JSONSchemaType<H5P.Manifest> = {
       nullable: true, // JSON schema treats undefined as nullable?
     },
   },
-  /*
-    // the spec theoretically defines allowed license versions. Uncomment to enable this check
-  allOf: [
-    {
-      if: {
-        properties: {
-          license: {
-              type: 'string',
-            enum: ['CC-BY', 'CC BY-SA', 'CC BY-ND', 'CC BY-NC', 'CC BY-NC-SA', 'CC CC-BY-NC-CD'],
-          },
-        },
-      },
-      then: {
-        properties: { licenseVersion: { enum: ['1.0', '2.0', '2.5', '3.0', '4.0'] } },
-      },
-    },
-    {
-      if: {
-        properties: {
-          license: {
-            const: 'GNU GPL',
-          },
-        },
-      },
-      then: {
-        properties: { licenseVersion: { enum: ['v1', 'v2', 'v3'] } },
-      },
-    },
-    {
-      if: {
-        properties: {
-          license: {
-            const: 'PD',
-          },
-        },
-      },
-      then: {
-        properties: { licenseVersion: { enum: ['-', 'CCO 1.0', 'CC PDM'] } },
-      },
-    },
-  ],
-  */
   required: ['title', 'mainLibrary', 'language', 'preloadedDependencies', 'embedTypes'],
   additionalProperties: true,
 };
