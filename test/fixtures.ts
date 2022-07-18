@@ -1,8 +1,9 @@
 import path from 'path';
 
+import { Item, Member, MemberType } from 'graasp';
 import { ServiceMethod } from 'graasp-plugin-file';
 
-import { H5PPluginOptions } from '../src/types';
+import { H5PExtra, H5PPluginOptions } from '../src/types';
 
 export const H5P_PACKAGES = {
   ACCORDION: {
@@ -36,4 +37,33 @@ export const DEFAULT_PLUGIN_OPTIONS: H5PPluginOptions = {
       s3SecretAccessKey: 'mock-s3-secret-access-key',
     },
   },
+};
+
+export const MOCK_ITEM: Item<H5PExtra> = {
+  id: 'mock-id',
+  name: 'mock-name',
+  description: 'mock-description',
+  type: 'mock-type',
+  path: 'mock-path',
+  extra: {
+    h5p: {
+      contentId: 'mock-content-id',
+      h5pFilePath: 'mock-h5p-file-path',
+      contentFilePath: 'mock-content-file-path',
+    },
+  },
+  creator: 'mock-creator',
+  createdAt: 'mock-created-at',
+  updatedAt: 'mock-updated-at',
+  settings: {},
+};
+
+export const MOCK_MEMBER: Member = {
+  name: 'mock-name',
+  email: 'mock-email',
+  type: 'individual' as MemberType,
+  extra: {},
+  createdAt: 'mock-created-at',
+  updatedAt: 'mock-updated-at',
+  id: 'mock-id',
 };

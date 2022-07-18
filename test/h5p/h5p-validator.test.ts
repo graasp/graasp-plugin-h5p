@@ -101,5 +101,19 @@ describe('H5PValidator', () => {
         error: `Invalid h5p.json manifest file: ${error}`,
       });
     });
+
+    it('rejects invalid h5p.json manifest: main library missing from preloaded dependencies', async () => {
+      const manifest = H5P_PACKAGES.ACCORDION.manifest;
+      await createManifest({
+        ...manifest,
+        preloadedDependencies: manifest.preloadedDependencies.filter(
+          ({ machineName }) => machineName !== manifest.mainLibrary,
+        ),
+      });
+      expect(await h5pValidator.validatePackage(dir.path)).toEqual({
+        isValid: false,
+        error: `Invalid h5p.json manifest file: main library not found in preloaded dependencies`,
+      });
+    });
   });
 });

@@ -2,7 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 
 import { GraaspError, GraaspErrorDetails } from 'graasp';
 
-export class GraaspImportH5PError implements GraaspError {
+class GraaspImportH5PError implements GraaspError {
   data?: unknown;
   origin: 'plugin' | string;
   code: string;
