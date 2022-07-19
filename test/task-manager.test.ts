@@ -1,18 +1,29 @@
+import { createMock } from 'ts-auto-mock';
+
 import { FastifyLoggerInstance } from 'fastify';
 
-import { Item } from 'graasp';
-import TaskManager from 'graasp-plugin-file/dist/task-manager';
+import { DatabaseTransactionHandler, Item } from 'graasp';
+import { FileTaskManager } from 'graasp-plugin-file';
+import FileService from 'graasp-plugin-file/dist/fileServices/interface/fileService';
 
 import { H5PItemMissingExtraError } from '../src/errors';
 import { H5PTaskManager } from '../src/task-manager';
 import { H5PExtra } from '../src/types';
 import { MOCK_ITEM, MOCK_MEMBER } from './fixtures';
-import { MockFileService, MockFileTaskManager } from './mocks';
+import { mockCreateDownloadFileTask } from './mocks';
 
 describe('H5P task manager', () => {
-  const mockFileService = new MockFileService();
-  const mockFileTaskManager = new MockFileTaskManager(mockFileService) as unknown as TaskManager;
+  const mockFileService = createMock<FileService>();
+  const mockFileTaskManager = createMock<FileTaskManager>();
+  const mockDbTrxHandler = createMock<DatabaseTransactionHandler>();
+  const mockLogger = createMock<FastifyLoggerInstance>();
+
+  /** instance under test */
   const taskManager = new H5PTaskManager(mockFileTaskManager, 'mock-prefix');
+
+  beforeAll(() => {
+    mockCreateDownloadFileTask(mockFileTaskManager, mockFileService);
+  });
 
   it('creates download H5P file task', () => {
     const task = taskManager.createDownloadH5PFileTask(
@@ -38,7 +49,7 @@ describe('H5P task manager', () => {
       'mock-destination-path',
       MOCK_MEMBER,
     );
-    await task.run({}, {} as FastifyLoggerInstance);
+    await task.run(mockDbTrxHandler, mockLogger);
     expect(mockFileService.downloadFile).toHaveBeenCalledWith({
       fileStorage: 'mock-destination-path',
       filepath: 'mock-prefix/mock-h5p-file-path',
