@@ -4,6 +4,15 @@ import {
   ServiceMethod,
 } from 'graasp-plugin-file';
 
+import { H5PService } from './service';
+
+// TODO: declare in SDK instead
+declare module 'fastify' {
+  interface FastifyInstance {
+    h5p?: H5PService;
+  }
+}
+
 /**
  * Plugin options
  */

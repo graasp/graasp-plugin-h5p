@@ -12,7 +12,6 @@ import fp from 'fastify-plugin';
 
 import { Actor, Item, Task } from 'graasp';
 import { FileTaskManager } from 'graasp-plugin-file';
-import { ORIGINAL_FILENAME_TRUNCATE_LIMIT } from 'graasp-plugin-file-item';
 
 import {
   DEFAULT_MIME_TYPE,
