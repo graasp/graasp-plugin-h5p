@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { Item, Member, MemberType } from 'graasp';
+import { Item, ItemMembership, Member, MemberType, PermissionLevel } from 'graasp';
 import { ServiceMethod } from 'graasp-plugin-file';
 
 import { H5PExtra, H5PPluginOptions } from '../src/types';
@@ -66,6 +66,16 @@ export const MOCK_MEMBER: Member = {
   createdAt: 'mock-created-at',
   updatedAt: 'mock-updated-at',
   id: 'mock-id',
+};
+
+export const MOCK_MEMBERSHIP: ItemMembership = {
+  id: 'mock-id',
+  memberId: 'mock-member-id',
+  itemPath: 'mock-item-path',
+  permission: 'read' as PermissionLevel,
+  creator: 'mock-creator',
+  createdAt: 'mock-created-at',
+  updatedAt: 'mock-updated-at',
 };
 
 /**

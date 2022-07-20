@@ -1365,6 +1365,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/checksum@npm:0.1.33":
+  version: 0.1.33
+  resolution: "@types/checksum@npm:0.1.33"
+  checksum: a54a1986de03fea4dfd53098c6a8081314b086be156e011c67c4e6ee7c891cb1f1d7af3e8c55aec49cefa6dd14656eae6581312a430a2bd7fae9adb662fd2428
+  languageName: node
+  linkType: hard
+
 "@types/extract-zip@npm:2.0.1":
   version: 2.0.1
   resolution: "@types/extract-zip@npm:2.0.1"
@@ -2309,6 +2316,17 @@ __metadata:
   version: 1.0.2
   resolution: "char-regex@npm:1.0.2"
   checksum: b563e4b6039b15213114626621e7a3d12f31008bdce20f9c741d69987f62aeaace7ec30f6018890ad77b2e9b4d95324c9f5acfca58a9441e3b1dcdd1e2525d17
+  languageName: node
+  linkType: hard
+
+"checksum@npm:1.0.0":
+  version: 1.0.0
+  resolution: "checksum@npm:1.0.0"
+  dependencies:
+    optimist: ~0.3.5
+  bin:
+    checksum: bin/checksum-cli.js
+  checksum: a20d56a530ba5ef3c9be2f707f4dd69e86bb2cb34a9e57bc8009c039a2a1e94f2fff2f82413f5acead0707ba21b01e49434f6627d1b953c21b8f02298f473214
   languageName: node
   linkType: hard
 
@@ -3454,6 +3472,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"form-data@npm:4.0.0":
+  version: 4.0.0
+  resolution: "form-data@npm:4.0.0"
+  dependencies:
+    asynckit: ^0.4.0
+    combined-stream: ^1.0.8
+    mime-types: ^2.1.12
+  checksum: 01135bf8675f9d5c61ff18e2e2932f719ca4de964e3be90ef4c36aacfc7b9cb2fceb5eca0b7e0190e3383fe51c5b37f4cb80b62ca06a99aaabfcfd6ac7c9328c
+  languageName: node
+  linkType: hard
+
 "form-data@npm:^3.0.0":
   version: 3.0.1
   resolution: "form-data@npm:3.0.1"
@@ -3781,6 +3810,7 @@ __metadata:
     "@fastify/multipart": 6.0.0
     "@fastify/static": 5.0.2
     "@trivago/prettier-plugin-sort-imports": 3.2.0
+    "@types/checksum": 0.1.33
     "@types/extract-zip": 2.0.1
     "@types/graasp": "github:graasp/graasp-types"
     "@types/jest": 27.0.1
@@ -3789,11 +3819,13 @@ __metadata:
     "@typescript-eslint/eslint-plugin": 5.4.0
     "@typescript-eslint/parser": 5.4.0
     ajv: 8.11.0
+    checksum: 1.0.0
     eslint: ^7.13.0
     eslint-config-prettier: ^8.3.0
     extract-zip: 2.0.1
     fastify: 3.29.0
     fastify-plugin: 3.0.1
+    form-data: 4.0.0
     graasp-plugin-file: "github:graasp/graasp-plugin-file#27-fix-copy-metadata"
     graasp-plugin-file-item: "github:graasp/graasp-plugin-file-item"
     h5p-standalone: 3.5.1
@@ -5689,6 +5721,15 @@ __metadata:
   dependencies:
     mimic-fn: ^2.1.0
   checksum: 2478859ef817fc5d4e9c2f9e5728512ddd1dbc9fb7829ad263765bb6d3b91ce699d6e2332eef6b7dff183c2f490bd3349f1666427eaba4469fba0ac38dfd0d34
+  languageName: node
+  linkType: hard
+
+"optimist@npm:~0.3.5":
+  version: 0.3.7
+  resolution: "optimist@npm:0.3.7"
+  dependencies:
+    wordwrap: ~0.0.2
+  checksum: adc02acb8b76d242e56714b47c8c96916b25a5ac2da7b9f735e1f946a970f266f71d53eff0b61d9582ef948301e94734f03b784fa7c309aed0fe7db403d22046
   languageName: node
   linkType: hard
 
@@ -7742,6 +7783,13 @@ __metadata:
   version: 1.2.3
   resolution: "word-wrap@npm:1.2.3"
   checksum: 30b48f91fcf12106ed3186ae4fa86a6a1842416df425be7b60485de14bec665a54a68e4b5156647dec3a70f25e84d270ca8bc8cd23182ed095f5c7206a938c1f
+  languageName: node
+  linkType: hard
+
+"wordwrap@npm:~0.0.2":
+  version: 0.0.3
+  resolution: "wordwrap@npm:0.0.3"
+  checksum: dfc2d3512e857ae4b3bc2e8d4e5d2c285c28a4b87cd1d81c977ce9a1a99152d355807e046851a3d61148f39d877fbb889352e07b65a9cbdd2256aa928e159026
   languageName: node
   linkType: hard
 

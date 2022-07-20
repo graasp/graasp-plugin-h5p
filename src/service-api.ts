@@ -4,6 +4,7 @@ import { lstat, mkdir, readdir, rm } from 'fs/promises';
 import mime from 'mime';
 import path from 'path';
 import { pipeline } from 'stream/promises';
+import tmp, { dir } from 'tmp-promise';
 import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
@@ -20,7 +21,6 @@ import {
   MAX_FILES,
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
-  TMP_EXTRACT_DIR,
 } from './constants';
 import { InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
@@ -182,7 +182,8 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         */
 
         const contentId = v4();
-        const targetFolder = path.join(__dirname, TMP_EXTRACT_DIR, contentId);
+        const tmpDir = await tmp.dir({ unsafeCleanup: true });
+        const targetFolder = path.join(tmpDir.path, contentId);
         const remoteRootPath = buildRootPath(pathPrefix, contentId);
 
         await mkdir(targetFolder, { recursive: true });
@@ -206,25 +207,25 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           try {
             // upload whole folder to public storage
             await uploadH5P(targetFolder, remoteRootPath, member);
-            return await createH5PItem(baseName, contentId, member, parentId);
+            const item = await createH5PItem(baseName, contentId, member, parentId);
+            return item;
           } catch (error) {
             // delete public storage folder of this H5P if upload or creation fails
             fileTaskManager.createDeleteFolderTask(member, {
               folderPath: remoteRootPath,
             });
-
-            // remove local temp folder, before rethrowing
-            rm(targetFolder, { recursive: true });
-
-            // log and rethrow to let fastify handle the error response
-            log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
-            log.error(error);
+            // rethrow above
             throw error;
           }
           // end of try-catch block for remote storage cleanup
+        } catch (error) {
+          // log and rethrow to let fastify handle the error response
+          log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
+          log.error(error);
+          throw error;
         } finally {
           // in all cases, remove local temp folder
-          rm(targetFolder, { recursive: true });
+          tmpDir.cleanup();
         }
         // end of try-catch block for local storage cleanup
       },

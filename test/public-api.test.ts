@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { StatusCodes } from 'http-status-codes';
 import path from 'path';
 import tmp, { DirectoryResult } from 'tmp-promise';
 
@@ -17,7 +18,7 @@ describe.each([
     assets: '/custom-assets-route/',
     content: '/custom-content-route/',
   },
-])('public plugin with route options: %o', (routes) => {
+])('Public plugin with route options: %o', (routes) => {
   /** instance under test */
   let app: FastifyInstance;
   let tmpDir: DirectoryResult;
@@ -59,7 +60,7 @@ describe.each([
       method: 'GET',
       url: path.join(routes?.assets ?? DEFAULT_H5P_ASSETS_ROUTE, file),
     });
-    expect(response.statusCode).toEqual(200);
+    expect(response.statusCode).toEqual(StatusCodes.OK);
   });
 
   it('returns 404 on non-existing asset', async () => {
@@ -67,7 +68,7 @@ describe.each([
       method: 'GET',
       url: path.join(routes?.assets ?? DEFAULT_H5P_ASSETS_ROUTE, 'foobar'),
     });
-    expect(response.statusCode).toEqual(404);
+    expect(response.statusCode).toEqual(StatusCodes.NOT_FOUND);
   });
 
   it('serves stored example H5P content', async () => {
@@ -81,7 +82,15 @@ describe.each([
       method: 'GET',
       url: path.join(routes?.content ?? DEFAULT_H5P_CONTENT_ROUTE, exampleFilename),
     });
-    expect(response.statusCode).toEqual(200);
+    expect(response.statusCode).toEqual(StatusCodes.OK);
     expect(response.body).toEqual(exampleContent);
+  });
+
+  it('returns 404 on non-existing content', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: path.join(routes?.content ?? DEFAULT_H5P_CONTENT_ROUTE, 'foobar'),
+    });
+    expect(response.statusCode).toEqual(StatusCodes.NOT_FOUND);
   });
 });
