@@ -1,111 +1,39 @@
-import cs from 'checksum';
-import FormData from 'form-data';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import { StatusCodes } from 'http-status-codes';
 import LightMyRequest from 'light-my-request';
 import path from 'path';
-import tmp, { DirectoryResult } from 'tmp-promise';
 import { createMock } from 'ts-auto-mock';
-import util from 'util';
 
-import fastify, { FastifyInstance, FastifyLoggerInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 
-import {
-  Actor,
-  DatabaseTransactionHandler,
-  Item,
-  ItemMembershipTaskManager,
-  ItemTaskManager,
-  TaskRunner,
-} from 'graasp';
-import { ServiceMethod } from 'graasp-plugin-file';
+import { Actor, Item, PostHookHandlerType, TaskRunner } from 'graasp';
 
 import { H5P_ITEM_TYPE } from '../src/constants';
 import { H5PService } from '../src/service';
-import plugin from '../src/service-api';
 import { H5PExtra } from '../src/types';
-import { H5P_PACKAGES, MOCK_ITEM, MOCK_MEMBER } from './fixtures';
 import {
-  mockCreateCreateItemTaskSequence,
-  mockCreateGetMembershipTask,
-  mockCreateGetTask,
-  mockRunSingle,
-  mockRunSingleSequence,
-} from './mocks';
-
-const checksum = {
-  file: util.promisify(cs.file),
-};
+  BuildAppType,
+  CoreSpiesType,
+  buildApp,
+  expectH5PFiles,
+  injectH5PImport,
+  mockCoreServices,
+} from './app';
+import { H5P_PACKAGES, MOCK_ITEM, MOCK_MEMBER, mockParentId } from './fixtures';
 
 describe('Service plugin', () => {
-  /* mocks */
-  const mockItemTaskManager = createMock<ItemTaskManager>();
-  const mockItemMembershipTaskManager = createMock<ItemMembershipTaskManager>();
-  const mockTaskRunner = createMock<TaskRunner<Actor>>();
-  const mockDbTrxHandler = createMock<DatabaseTransactionHandler>();
-  const mockLogger = createMock<FastifyLoggerInstance>();
-
-  /** spies */
-  let createItemSpy: jest.SpyInstance;
-  let getItemSpy: jest.SpyInstance;
-  let getMembershipSpy: jest.SpyInstance;
-  let runSingle: jest.SpyInstance;
-  let runSingleSequenceSpy: jest.SpyInstance;
-
-  /* params */
-  let tmpDir: DirectoryResult;
-  const pathPrefix = 'h5p';
-
-  /** instance under test */
+  let build: BuildAppType;
   let app: FastifyInstance;
 
+  /* spies */
+  let spies: CoreSpiesType;
+
   beforeAll(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true });
-
-    app = fastify();
-
-    app.decorate('items', { taskManager: mockItemTaskManager });
-    app.decorate('itemMemberships', { taskManager: mockItemMembershipTaskManager });
-    app.decorate('taskRunner', mockTaskRunner);
-    app.decorateRequest('member', MOCK_MEMBER);
-
-    createItemSpy = mockCreateCreateItemTaskSequence(mockItemTaskManager);
-    getItemSpy = mockCreateGetTask(mockItemTaskManager);
-    getMembershipSpy = mockCreateGetMembershipTask(mockItemMembershipTaskManager);
-    runSingle = mockRunSingle(mockTaskRunner, mockDbTrxHandler, mockLogger);
-    runSingleSequenceSpy = mockRunSingleSequence(mockTaskRunner, mockDbTrxHandler, mockLogger);
-
-    // uuid schema referenced from h5pImport schema should be registered by core
-    // we use a simple string schema instead
-    app.addSchema({
-      $id: 'http://graasp.org/',
-      type: 'object',
-      definitions: {
-        uuid: { type: 'string' },
-      },
-    });
-
-    await app.register(plugin, {
-      serviceMethod: ServiceMethod.LOCAL,
-      serviceOptions: {
-        local: {
-          storageRootPath: tmpDir.path,
-        },
-        // todo: file service refactor should not require both configs
-        s3: {
-          s3Region: 'mock-s3-region',
-          s3Bucket: 'mock-s3-bucket',
-          s3AccessKeyId: 'mock-s3-access-key-id',
-          s3SecretAccessKey: 'mock-s3-secret-access-key',
-        },
-      },
-      pathPrefix,
-    });
-  });
-
-  afterAll(async () => {
-    await tmpDir.cleanup();
+    build = await buildApp();
+    await build.registerH5PPlugin();
+    spies = mockCoreServices(build);
+    app = build.app;
   });
 
   it('decorates the fastify instance with h5p service', () => {
@@ -115,7 +43,6 @@ describe('Service plugin', () => {
 
   describe('Upload valid .h5p package', () => {
     const h5pFileName = path.basename(H5P_PACKAGES.ACCORDION.path);
-    const mockParentId = 'mock-parent-id';
 
     let res: LightMyRequest.Response,
       json: Item<H5PExtra>,
@@ -124,16 +51,7 @@ describe('Service plugin', () => {
       expectedMetadata: Partial<Item<H5PExtra>>;
 
     beforeAll(async () => {
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(H5P_PACKAGES.ACCORDION.path));
-
-      res = await app.inject({
-        method: 'POST',
-        url: '/h5p-import',
-        payload: formData,
-        headers: formData.getHeaders(),
-        query: { parentId: mockParentId },
-      });
+      res = await injectH5PImport(app);
 
       json = res.json();
 
@@ -163,43 +81,88 @@ describe('Service plugin', () => {
       });
     });
 
-    it('creates the item through the item service', () => {
-      expect(createItemSpy).toHaveBeenCalledTimes(1);
-      expect(createItemSpy).toHaveBeenCalledWith(MOCK_MEMBER, expectedMetadata, mockParentId);
-      const usedCreateItemSequence = createItemSpy.mock.results[0].value;
-      expect(runSingleSequenceSpy).toHaveBeenCalledWith(usedCreateItemSequence);
-    });
-
     it('validates the write permission in parent if it exists', () => {
-      expect(getItemSpy).toHaveBeenCalledTimes(1);
-      expect(getItemSpy).toHaveBeenCalledWith(MOCK_MEMBER, mockParentId);
-      expect(getMembershipSpy).toHaveBeenCalledTimes(1);
-      expect(getMembershipSpy).toHaveBeenCalledWith(MOCK_MEMBER);
-      const usedGetItemTask = getItemSpy.mock.results[0].value;
-      const usedGetMembershipTask = getMembershipSpy.mock.results[0].value;
-      expect(runSingleSequenceSpy).toHaveBeenCalledWith([usedGetItemTask, usedGetMembershipTask]);
+      expect(spies.getItem).toHaveBeenCalledTimes(1);
+      expect(spies.getItem).toHaveBeenCalledWith(MOCK_MEMBER, mockParentId);
+
+      expect(spies.getMembership).toHaveBeenCalledTimes(1);
+      expect(spies.getMembership).toHaveBeenCalledWith(MOCK_MEMBER);
+
+      const usedGetItemTask = spies.getItem.mock.results[0].value;
+      const usedGetMembershipTask = spies.getMembership.mock.results[0].value;
+      expect(spies.runSingleSequence).toHaveBeenCalledWith([
+        usedGetItemTask,
+        usedGetMembershipTask,
+      ]);
     });
 
     it('extracts the files correctly', async () => {
-      // root extraction folder exists
-      const root = path.resolve(tmpDir.path, pathPrefix, contentId);
-      expect(fs.existsSync(root)).toBeTruthy();
-      // .h5p package exists and is same file as original
-      const h5pFile = path.resolve(root, h5pFileName);
-      expect(fs.existsSync(h5pFile)).toBeTruthy();
-      expect(await checksum.file(h5pFile)).toEqual(
-        await checksum.file(H5P_PACKAGES.ACCORDION.path),
-      );
-      // content folder exists
-      const contentFolder = path.resolve(root, 'content');
-      expect(fs.existsSync(contentFolder)).toBeTruthy();
-      // h5p.json manifest file exists and is same file as original
-      const manifestFile = path.resolve(contentFolder, 'h5p.json');
-      expect(fs.existsSync(manifestFile)).toBeTruthy();
-      const parsedManifest = JSON.parse(await fsp.readFile(manifestFile, { encoding: 'utf-8' }));
-      expect(parsedManifest).toEqual(H5P_PACKAGES.ACCORDION.manifest);
+      const { storageRootPath, pathPrefix } = build.options;
+      await expectH5PFiles(H5P_PACKAGES.ACCORDION, storageRootPath, pathPrefix, contentId);
     });
 
-    it('removes the temporary extraction folder', () => {});
+    it('creates the item through the item service', () => {
+      expect(spies.createItem).toHaveBeenCalledTimes(1);
+      expect(spies.createItem).toHaveBeenCalledWith(MOCK_MEMBER, expectedMetadata, mockParentId);
+
+      const usedCreateItemSequence = spies.createItem.mock.results[0].value;
+      expect(spies.runSingleSequence).toHaveBeenCalledWith(usedCreateItemSequence);
+    });
+
+    it('removes the temporary extraction folder', async () => {
+      const { extractionRootPath } = build.options;
+      const contents = await fsp.readdir(extractionRootPath);
+      expect(contents.length).toEqual(0);
+    });
   });
+});
+
+describe('Hooks', () => {
+  /** we manually create a mock task runner to inject implementations */
+  let taskRunner: TaskRunner<Actor>;
+
+  let build: BuildAppType;
+  let spies: CoreSpiesType;
+  let app: FastifyInstance;
+
+  beforeAll(() => {
+    taskRunner = createMock<TaskRunner<Actor>>();
+  });
+
+  beforeEach(async () => {
+    // create a fresh app at each test
+    build = await buildApp({ services: { taskRunner } });
+    spies = mockCoreServices(build);
+    app = build.app;
+  });
+
+  it('deletes H5P assets on item delete', async () => {
+    // setup handler storage to execute it when we will simulate an item delete
+    const onDeleteStore = new Promise<PostHookHandlerType<Item<H5PExtra>>>((resolve, reject) => {
+      spies.setTaskPostHookHandler.mockImplementation((taskName, handler) => {
+        resolve(handler);
+      });
+    });
+    // onDelete will be saved after registerH5PPlugin
+    await build.registerH5PPlugin();
+
+    // create an H5P item through import
+    const res = await injectH5PImport(app, { filePath: H5P_PACKAGES.ACCORDION.path });
+    expect(res.statusCode).toEqual(StatusCodes.OK);
+    const item: Item<H5PExtra> = res.json();
+    const contentId = item.extra.h5p.contentId;
+    const { storageRootPath, pathPrefix } = build.options;
+    await expectH5PFiles(H5P_PACKAGES.ACCORDION, storageRootPath, pathPrefix, contentId);
+
+    // simulate an item delete
+    const onDelete = await onDeleteStore;
+    expect(onDelete).toBeDefined();
+    await onDelete(item, MOCK_MEMBER, { log: build.services.logger });
+
+    // H5P folder should now be deleted
+    const h5pFolder = path.join(storageRootPath, pathPrefix, contentId);
+    expect(fs.existsSync(h5pFolder)).toBeFalsy();
+  });
+
+  it('copies H5P assets on item copy', () => {});
 });

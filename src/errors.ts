@@ -2,7 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 
 import { GraaspError, GraaspErrorDetails } from 'graasp';
 
-class GraaspImportH5PError implements GraaspError {
+export abstract class GraaspImportH5PError implements GraaspError {
   data?: unknown;
   origin: 'plugin' | string;
   code: string;
@@ -56,5 +56,15 @@ export class H5PItemMissingExtraError extends GraaspImportH5PError {
       },
       data,
     );
+  }
+}
+
+export class H5PImportError extends GraaspImportH5PError {
+  constructor() {
+    super({
+      code: 'GPH5PERR004',
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: 'Unexpected server error while importing H5P',
+    });
   }
 }

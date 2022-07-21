@@ -1,10 +1,10 @@
 import extract from 'extract-zip';
 import fs from 'fs';
-import { lstat, mkdir, readdir, rm } from 'fs/promises';
+import { lstat, mkdir, readdir } from 'fs/promises';
 import mime from 'mime';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import tmp, { dir } from 'tmp-promise';
+import tmp from 'tmp-promise';
 import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
@@ -22,7 +22,7 @@ import {
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
 } from './constants';
-import { InvalidH5PFileError } from './errors';
+import { GraaspImportH5PError, H5PImportError, InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { H5PService } from './service';
 import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
@@ -38,7 +38,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   } = fastify;
 
   validatePluginOptions(options);
-  const { serviceMethod, serviceOptions, pathPrefix } = options;
+  const { serviceMethod, serviceOptions, pathPrefix, tempDir } = options;
 
   const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
   const h5pValidator = new H5PValidator();
@@ -182,7 +182,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
         */
 
         const contentId = v4();
-        const tmpDir = await tmp.dir({ unsafeCleanup: true });
+        const tmpDir = await tmp.dir({ tmpdir: tempDir, unsafeCleanup: true });
         const targetFolder = path.join(tmpDir.path, contentId);
         const remoteRootPath = buildRootPath(pathPrefix, contentId);
 
@@ -222,10 +222,14 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           // log and rethrow to let fastify handle the error response
           log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
           log.error(error);
+          // wrap into plugin error type if not ours
+          if (!(error instanceof GraaspImportH5PError)) {
+            error = new H5PImportError();
+          }
           throw error;
         } finally {
           // in all cases, remove local temp folder
-          tmpDir.cleanup();
+          await tmpDir.cleanup();
         }
         // end of try-catch block for local storage cleanup
       },

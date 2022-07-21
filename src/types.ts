@@ -28,6 +28,8 @@ export interface H5PPluginOptions {
     assets: string;
     content: string;
   };
+  /** optional: temp directory */
+  tempDir?: string;
 }
 
 /**

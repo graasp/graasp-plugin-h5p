@@ -1,9 +1,23 @@
 import path from 'path';
 
-import { Item, ItemMembership, Member, MemberType, PermissionLevel } from 'graasp';
+import { FastifyLoggerInstance } from 'fastify';
+
+import {
+  Actor,
+  DatabaseTransactionHandler,
+  Item,
+  ItemMembership,
+  Member,
+  MemberType,
+  PermissionLevel,
+  Task,
+  TaskStatus,
+} from 'graasp';
 import { ServiceMethod } from 'graasp-plugin-file';
 
 import { H5PExtra, H5PPluginOptions } from '../src/types';
+
+export const mockParentId = 'mock-parent-id';
 
 export const H5P_PACKAGES = {
   ACCORDION: {
@@ -101,3 +115,24 @@ export const H5P_STANDALONE_ASSETS_FILES = [
   'styles/h5p-hub-sharing.css',
   'styles/h5p.css',
 ];
+
+/**
+ * Mock item result task factory
+ */
+export const mockTask = <T>(
+  name: string,
+  actor: Actor,
+  result: T,
+  status: TaskStatus = 'NEW',
+): Task<Actor, T> => ({
+  name,
+  actor,
+  status,
+  result,
+  run: async function (
+    handler: DatabaseTransactionHandler,
+    log: FastifyLoggerInstance,
+  ): Promise<void | Task<Actor, T>[]> {
+    this.status = 'OK';
+  },
+});
