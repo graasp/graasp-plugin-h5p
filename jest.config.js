@@ -7,4 +7,10 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transformIgnorePatterns: ['node_modules/(?!graasp-.*)'],
   verbose: true,
+  globals: {
+    'ts-jest': {
+      compiler: 'ttypescript',
+    },
+  },
+  setupFiles: ['<rootDir>/test/config.ts'],
 };
