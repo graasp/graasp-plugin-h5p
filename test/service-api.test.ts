@@ -1,3 +1,4 @@
+import { Options, compare as dircompare, fileCompareHandlers } from 'dir-compare';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import { StatusCodes } from 'http-status-codes';
@@ -5,11 +6,9 @@ import LightMyRequest from 'light-my-request';
 import path from 'path';
 import { createMock } from 'ts-auto-mock';
 
-import { FastifyInstance } from 'fastify';
+import { Actor, Item, PostHookHandlerType, PreHookHandlerType, TaskRunner } from 'graasp';
 
-import { Actor, Item, PostHookHandlerType, TaskRunner } from 'graasp';
-
-import { H5P_ITEM_TYPE } from '../src/constants';
+import { H5P_FILE_DOT_EXTENSION, H5P_ITEM_TYPE } from '../src/constants';
 import { H5PService } from '../src/service';
 import { H5PExtra } from '../src/types';
 import {
@@ -22,9 +21,10 @@ import {
 } from './app';
 import { H5P_PACKAGES, MOCK_ITEM, MOCK_MEMBER, mockParentId } from './fixtures';
 
+const H5P_ACCORDION_FILENAME = path.basename(H5P_PACKAGES.ACCORDION.path);
+
 describe('Service plugin', () => {
   let build: BuildAppType;
-  let app: FastifyInstance;
 
   /* spies */
   let spies: CoreSpiesType;
@@ -33,17 +33,15 @@ describe('Service plugin', () => {
     build = await buildApp();
     await build.registerH5PPlugin();
     spies = mockCoreServices(build);
-    app = build.app;
   });
 
   it('decorates the fastify instance with h5p service', () => {
+    const { app } = build;
     expect(app.h5p).toBeDefined();
     expect(app.h5p instanceof H5PService).toBeTruthy();
   });
 
   describe('Upload valid .h5p package', () => {
-    const h5pFileName = path.basename(H5P_PACKAGES.ACCORDION.path);
-
     let res: LightMyRequest.Response,
       json: Item<H5PExtra>,
       contentId: string,
@@ -51,6 +49,8 @@ describe('Service plugin', () => {
       expectedMetadata: Partial<Item<H5PExtra>>;
 
     beforeAll(async () => {
+      const { app } = build;
+
       res = await injectH5PImport(app);
 
       json = res.json();
@@ -61,13 +61,13 @@ describe('Service plugin', () => {
       expectedExtra = {
         h5p: {
           contentId,
-          h5pFilePath: `${contentId}/${h5pFileName}`,
+          h5pFilePath: `${contentId}/${H5P_ACCORDION_FILENAME}`,
           contentFilePath: `${contentId}/content`,
         },
       };
 
       expectedMetadata = {
-        name: h5pFileName,
+        name: H5P_ACCORDION_FILENAME,
         type: H5P_ITEM_TYPE,
         extra: expectedExtra,
       };
@@ -123,7 +123,6 @@ describe('Hooks', () => {
 
   let build: BuildAppType;
   let spies: CoreSpiesType;
-  let app: FastifyInstance;
 
   beforeAll(() => {
     taskRunner = createMock<TaskRunner<Actor>>();
@@ -133,7 +132,6 @@ describe('Hooks', () => {
     // create a fresh app at each test
     build = await buildApp({ services: { taskRunner } });
     spies = mockCoreServices(build);
-    app = build.app;
   });
 
   it('deletes H5P assets on item delete', async () => {
@@ -147,7 +145,7 @@ describe('Hooks', () => {
     await build.registerH5PPlugin();
 
     // create an H5P item through import
-    const res = await injectH5PImport(app, { filePath: H5P_PACKAGES.ACCORDION.path });
+    const res = await injectH5PImport(build.app, { filePath: H5P_PACKAGES.ACCORDION.path });
     expect(res.statusCode).toEqual(StatusCodes.OK);
     const item: Item<H5PExtra> = res.json();
     const contentId = item.extra.h5p.contentId;
@@ -164,5 +162,71 @@ describe('Hooks', () => {
     expect(fs.existsSync(h5pFolder)).toBeFalsy();
   });
 
-  it('copies H5P assets on item copy', () => {});
+  it('copies H5P assets on item copy', async () => {
+    // setup handler storage to execute it when we will simulate an item copy
+    const onCopyStore = new Promise<PreHookHandlerType<Item<H5PExtra>>>((resolve, reject) => {
+      spies.setTaskPreHookHandler.mockImplementation((taskName, handler) => {
+        resolve(handler);
+      });
+    });
+    // onCopy will be saved after registerH5PPlugin
+    await build.registerH5PPlugin();
+
+    // create an H5P item through import
+    const res = await injectH5PImport(build.app, { filePath: H5P_PACKAGES.ACCORDION.path });
+    expect(res.statusCode).toEqual(StatusCodes.OK);
+    const item: Item<H5PExtra> = res.json();
+    const contentId = item.extra.h5p.contentId;
+    const { storageRootPath, pathPrefix } = build.options;
+    await expectH5PFiles(H5P_PACKAGES.ACCORDION, storageRootPath, pathPrefix, contentId);
+
+    // simulate an item copy
+    const onCopy = await onCopyStore;
+    expect(onCopy).toBeDefined();
+    await onCopy(item, MOCK_MEMBER, { log: build.services.logger });
+
+    // H5P folder should now be copied
+    const h5pBucket = path.join(storageRootPath, pathPrefix);
+    const h5pFolders = await fsp.readdir(h5pBucket);
+    expect(h5pFolders.length).toEqual(2);
+    expect(h5pFolders.includes(contentId));
+    const otherId = h5pFolders.find((e) => e !== contentId)!!; // the above line ensures exists
+
+    // expected name of the copy
+    const H5P_ACCORDION_COPY_FILENAME = `${path.basename(
+      H5P_ACCORDION_FILENAME,
+      H5P_FILE_DOT_EXTENSION,
+    )}-1${H5P_FILE_DOT_EXTENSION}`;
+    const originalPath = path.join(h5pBucket, contentId, H5P_ACCORDION_FILENAME);
+    const copyPath = path.join(h5pBucket, otherId, H5P_ACCORDION_COPY_FILENAME);
+    const originalStats = await fsp.stat(originalPath);
+    const copyStats = await fsp.stat(copyPath);
+
+    const defaultFileCompare = fileCompareHandlers.defaultFileCompare.compareAsync;
+    const customFileCompare = (
+      path1: string,
+      stat1: fs.Stats,
+      path2: string,
+      stat2: fs.Stats,
+      options: Options,
+    ) => {
+      if (path1 === originalPath) {
+        return defaultFileCompare(path1, stat1, copyPath, copyStats, options);
+      } else if (path2 === originalPath) {
+        return defaultFileCompare(copyPath, copyStats, path2, stat2, options);
+      } else if (path1 === copyPath) {
+        return defaultFileCompare(path1, stat1, originalPath, originalStats, options);
+      } else if (path2 === copyPath) {
+        return defaultFileCompare(originalPath, originalStats, path2, stat2, options);
+      } else {
+        return defaultFileCompare(path1, stat1, path2, stat2, options);
+      }
+    };
+
+    const dirDiff = await dircompare(originalPath, copyPath, {
+      compareContent: true,
+      compareFileAsync: customFileCompare,
+    });
+    expect(dirDiff.same).toBeTruthy();
+  });
 });

@@ -2770,6 +2770,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dir-compare@npm:4.0.0":
+  version: 4.0.0
+  resolution: "dir-compare@npm:4.0.0"
+  dependencies:
+    minimatch: ^3.0.4
+    p-limit: "^3.1.0 "
+  checksum: 54d7620453d239c8c64cb8ca54e8ca6ea3f9f9633eb2923f1143f0822b4bb63702029d8d18570186b950d4e1a7575691a0730b3e22f3fa3d2102c1279562091a
+  languageName: node
+  linkType: hard
+
 "dir-glob@npm:^3.0.1":
   version: 3.0.1
   resolution: "dir-glob@npm:3.0.1"
@@ -3773,22 +3783,7 @@ __metadata:
 
 "graasp-plugin-file@github:graasp/graasp-plugin-file":
   version: 0.1.0
-  resolution: "graasp-plugin-file@https://github.com/graasp/graasp-plugin-file.git#commit=9f752715b76ee82e8a7fddcd8da3234ce97df7ec"
-  dependencies:
-    "@fastify/multipart": 6.0.0
-    "@graasp/translations": "github:graasp/graasp-translations"
-    aws-sdk: 2.1111.0
-    content-disposition: 0.5.4
-    fs-extra: 10.1.0
-    http-status-codes: 2.2.0
-    node-fetch: 2.6.7
-  checksum: f33b3eb6ac8adbc5d6d6809d238bd935135e941e6156b2479a2af05fa6a0197774bc584505ff7ee4d122dbc51e21291ffc6ab308fff798cb421deadb2ec4a4ec
-  languageName: node
-  linkType: hard
-
-"graasp-plugin-file@github:graasp/graasp-plugin-file#27-fix-copy-metadata":
-  version: 0.1.0
-  resolution: "graasp-plugin-file@https://github.com/graasp/graasp-plugin-file.git#commit=e406ffb577baaed78893f192f032d264da838f0c"
+  resolution: "graasp-plugin-file@https://github.com/graasp/graasp-plugin-file.git#commit=1f787df683b1476bd1192c67e423d78cc5413279"
   dependencies:
     "@fastify/multipart": 6.0.0
     "@graasp/translations": "github:graasp/graasp-translations"
@@ -3820,13 +3815,14 @@ __metadata:
     "@typescript-eslint/parser": 5.4.0
     ajv: 8.11.0
     checksum: 1.0.0
+    dir-compare: 4.0.0
     eslint: ^7.13.0
     eslint-config-prettier: ^8.3.0
     extract-zip: 2.0.1
     fastify: 3.29.0
     fastify-plugin: 3.0.1
     form-data: 4.0.0
-    graasp-plugin-file: "github:graasp/graasp-plugin-file#27-fix-copy-metadata"
+    graasp-plugin-file: "github:graasp/graasp-plugin-file"
     graasp-plugin-file-item: "github:graasp/graasp-plugin-file-item"
     h5p-standalone: 3.5.1
     http-status-codes: 2.2.0
@@ -5777,7 +5773,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-limit@npm:^3.0.2, p-limit@npm:^3.1.0":
+"p-limit@npm:^3.0.2, p-limit@npm:^3.1.0, p-limit@npm:^3.1.0 ":
   version: 3.1.0
   resolution: "p-limit@npm:3.1.0"
   dependencies:

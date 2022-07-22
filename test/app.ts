@@ -207,9 +207,13 @@ export function mockCoreServices(build: BuildAppType) {
 
   const runSingleSequence = jest
     .spyOn(taskRunner, 'runSingleSequence')
-    .mockImplementation((tasks) =>
-      Promise.resolve([...tasks].map((t) => (t.run(dbTrxHandler, logger), t)).pop()?.result),
-    );
+    .mockImplementation(async (tasks) => {
+      tasks = [...tasks];
+      for (const task of tasks) {
+        await task.run(dbTrxHandler, logger);
+      }
+      return tasks.pop()?.result;
+    });
 
   const setTaskPreHookHandler = jest.spyOn(taskRunner, 'setTaskPreHookHandler');
 

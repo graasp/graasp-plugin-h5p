@@ -1,6 +1,11 @@
 import { StatusCodes } from 'http-status-codes';
 
-import { H5PItemMissingExtraError, H5PItemNotFoundError, InvalidH5PFileError } from '../src/errors';
+import {
+  H5PImportError,
+  H5PItemMissingExtraError,
+  H5PItemNotFoundError,
+  InvalidH5PFileError,
+} from '../src/errors';
 import { MOCK_ITEM } from './fixtures';
 
 describe('Custom errors', () => {
@@ -33,6 +38,17 @@ describe('Custom errors', () => {
     expect(error.data).toEqual(MOCK_ITEM);
     expect(error.message).toEqual('H5P item missing required extra');
     expect(error.name).toEqual('GPH5PERR003');
+    expect(error.origin).toEqual('plugin');
+    expect(error.statusCode).toEqual(StatusCodes.INTERNAL_SERVER_ERROR);
+  });
+
+  it('builds correct H5PImportError', () => {
+    const error = new H5PImportError();
+
+    expect(error.code).toEqual('GPH5PERR004');
+    expect(error.data).toBeUndefined();
+    expect(error.message).toEqual('Unexpected error while importing H5P');
+    expect(error.name).toEqual('GPH5PERR004');
     expect(error.origin).toEqual('plugin');
     expect(error.statusCode).toEqual(StatusCodes.INTERNAL_SERVER_ERROR);
   });
