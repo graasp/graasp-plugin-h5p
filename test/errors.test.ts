@@ -47,7 +47,7 @@ describe('Custom errors', () => {
 
     expect(error.code).toEqual('GPH5PERR004');
     expect(error.data).toBeUndefined();
-    expect(error.message).toEqual('Unexpected error while importing H5P');
+    expect(error.message).toEqual('Unexpected server error while importing H5P');
     expect(error.name).toEqual('GPH5PERR004');
     expect(error.origin).toEqual('plugin');
     expect(error.statusCode).toEqual(StatusCodes.INTERNAL_SERVER_ERROR);

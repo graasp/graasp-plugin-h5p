@@ -8,7 +8,7 @@ import tmp from 'tmp-promise';
 import { v4 } from 'uuid';
 
 import fastifyMultipart from '@fastify/multipart';
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyLoggerInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { Actor, Item, Task } from 'graasp';
@@ -57,6 +57,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     folder: string,
     uploadPath: string,
     member: Actor,
+    log: FastifyLoggerInstance,
   ): Promise<Array<string>> {
     const children = await readdir(folder);
 
@@ -68,11 +69,12 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
       if (stats.isDirectory()) {
         // recursively upload child folder
-        return await uploadH5P(childPath, childUploadPath, member);
+        return await uploadH5P(childPath, childUploadPath, member, log);
       } else {
         // ignore this file if extension is not allowed
         const ext = path.extname(childPath);
         if (!h5pValidator.isExtensionAllowed(ext)) {
+          log.info('H5P import: illegal file extension detected, skipping file: ', childPath);
           // we're using flatMap, represent none value with empty array
           return [];
         }
@@ -206,14 +208,15 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           // try-catch block for remote storage cleanup
           try {
             // upload whole folder to public storage
-            await uploadH5P(targetFolder, remoteRootPath, member);
+            await uploadH5P(targetFolder, remoteRootPath, member, log);
             const item = await createH5PItem(baseName, contentId, member, parentId);
             return item;
           } catch (error) {
             // delete public storage folder of this H5P if upload or creation fails
-            fileTaskManager.createDeleteFolderTask(member, {
+            const deleteTask = fileTaskManager.createDeleteFolderTask(member, {
               folderPath: remoteRootPath,
             });
+            await taskRunner.runSingle(deleteTask);
             // rethrow above
             throw error;
           }

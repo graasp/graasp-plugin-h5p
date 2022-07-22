@@ -3,7 +3,7 @@ import FormData from 'form-data';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
-import tmp from 'tmp-promise';
+import tmp, { DirectoryResult } from 'tmp-promise';
 import { createMock } from 'ts-auto-mock';
 import util from 'util';
 
@@ -57,10 +57,16 @@ export async function buildApp(args?: {
 }) {
   const { options, services } = args ?? {};
 
+  const tmpDirs: Array<DirectoryResult> = [];
+  async function tmpDir(options: any = { unsafeCleanup: true }) {
+    const entry = await tmp.dir(options);
+    tmpDirs.push(entry);
+    return entry.path;
+  }
+
   const pathPrefix = options?.pathPrefix ?? 'h5p';
-  const storageRootPath = options?.storageRootPath ?? (await tmp.dir({ unsafeCleanup: true })).path;
-  const extractionRootPath =
-    options?.extractionRootPath ?? (await tmp.dir({ unsafeCleanup: true })).path;
+  const storageRootPath = options?.storageRootPath ?? (await tmpDir());
+  const extractionRootPath = options?.extractionRootPath ?? (await tmpDir());
 
   /* mocks */
   const itemTaskManager = services?.itemTaskManager ?? createMock<ItemTaskManager>();
@@ -106,6 +112,10 @@ export async function buildApp(args?: {
       tempDir: extractionRootPath,
     });
 
+  const cleanup = async () => {
+    return Promise.all(tmpDirs.map(async (dir) => await dir.cleanup()));
+  };
+
   return {
     app,
     registerH5PPlugin,
@@ -121,6 +131,7 @@ export async function buildApp(args?: {
       dbTrxHandler,
       logger,
     },
+    cleanup,
   };
 }
 

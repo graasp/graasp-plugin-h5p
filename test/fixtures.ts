@@ -35,6 +35,26 @@ export const H5P_PACKAGES = {
       ],
     },
   },
+  BOGUS_EMPTY: {
+    path: path.resolve(__dirname, 'fixtures/empty.h5p'),
+  },
+  BOGUS_WRONG_EXTENSION: {
+    path: path.resolve(__dirname, 'fixtures/illegal-extension.h5p'),
+    manifest: {
+      title: 'WrongExtension',
+      language: 'und',
+      mainLibrary: 'foo',
+      embedTypes: ['div'],
+      license: 'U',
+      preloadedDependencies: [
+        {
+          machineName: 'foo',
+          majorVersion: '0',
+          minorVersion: '1',
+        },
+      ],
+    },
+  },
 };
 
 export const DEFAULT_PLUGIN_OPTIONS: H5PPluginOptions = {
@@ -124,15 +144,16 @@ export const mockTask = <T>(
   actor: Actor,
   result: T,
   status: TaskStatus = 'NEW',
+  run: (
+    handler: DatabaseTransactionHandler,
+    log: FastifyLoggerInstance,
+  ) => Promise<void | Task<Actor, T>[]> = async (handler, log) => {
+    status = 'OK';
+  },
 ): Task<Actor, T> => ({
   name,
   actor,
   status,
   result,
-  run: async function (
-    handler: DatabaseTransactionHandler,
-    log: FastifyLoggerInstance,
-  ): Promise<void | Task<Actor, T>[]> {
-    this.status = 'OK';
-  },
+  run,
 });
