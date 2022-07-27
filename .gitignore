@@ -5,6 +5,9 @@ node_modules/
 # coverage
 coverage/
 
+# OSX
+.DS_Store
+
 # tests
 test/tmp
 
