@@ -51,5 +51,5 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
 
 export default fp(publicPlugin, {
   fastify: '3.x',
-  name: 'graasp-plugin-h5p.public',
+  name: 'graasp-plugin-h5p-public',
 });
