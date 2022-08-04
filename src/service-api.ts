@@ -1,5 +1,5 @@
 import { FileTaskManager } from '@graasp/plugin-file';
-import { Actor, Item, Task } from '@graasp/sdk';
+import { Actor, H5PExtra, Item, PermissionLevel, Task } from '@graasp/sdk';
 import extract from 'extract-zip';
 import fs from 'fs';
 import { lstat, mkdir, readdir } from 'fs/promises';
@@ -24,7 +24,7 @@ import {
 import { GraaspImportH5PError, H5PImportError, InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { H5PService } from './service';
-import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
+import { H5PPluginOptions } from './types';
 import { buildContentPath, buildH5PPath, buildRootPath, validatePluginOptions } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
 

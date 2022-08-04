@@ -1,6 +1,7 @@
 import {
   Actor,
   DatabaseTransactionHandler,
+  H5PExtra,
   Item,
   ItemMembership,
   ItemType,
@@ -14,7 +15,7 @@ import path from 'path';
 
 import { FastifyLoggerInstance } from 'fastify';
 
-import { H5PExtra, H5PPluginOptions } from '../src/types';
+import { H5PPluginOptions } from '../src/types';
 
 export const mockParentId = 'mock-parent-id';
 

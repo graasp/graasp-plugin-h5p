@@ -1,5 +1,6 @@
 import {
   Actor,
+  H5PExtra,
   Item,
   PostHookHandlerType,
   PreHookHandlerType,
@@ -17,7 +18,6 @@ import { createMock } from 'ts-auto-mock';
 import { H5P_FILE_DOT_EXTENSION, H5P_ITEM_TYPE } from '../src/constants';
 import { H5PImportError, InvalidH5PFileError } from '../src/errors';
 import { H5PService } from '../src/service';
-import { H5PExtra } from '../src/types';
 import {
   BuildAppType,
   CoreSpiesType,

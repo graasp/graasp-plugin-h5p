@@ -1,13 +1,12 @@
 import { FileTaskManager } from '@graasp/plugin-file';
 import DownloadFileTask from '@graasp/plugin-file/dist/tasks/download-file-task';
-import { Actor, DatabaseTransactionHandler, FileService, Item, Task } from '@graasp/sdk';
+import { Actor, DatabaseTransactionHandler, FileService, H5PExtra, Item, Task } from '@graasp/sdk';
 import { createMock } from 'ts-auto-mock';
 
 import { FastifyLoggerInstance } from 'fastify';
 
 import { H5PItemMissingExtraError } from '../src/errors';
 import { H5PTaskManager } from '../src/task-manager';
-import { H5PExtra } from '../src/types';
 import { MOCK_ITEM, MOCK_MEMBER } from './fixtures';
 
 describe('H5P task manager', () => {
