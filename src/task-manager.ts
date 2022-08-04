@@ -1,8 +1,7 @@
+import { FileTaskManager } from '@graasp/plugin-file';
+import { Actor, Item, Task } from '@graasp/sdk';
 import { ReadStream } from 'fs';
 import path from 'path';
-
-import { Actor, Item, Task } from 'graasp';
-import { FileTaskManager } from 'graasp-plugin-file';
 
 import { H5P_FILE_MIME_TYPE } from './constants';
 import { H5PItemMissingExtraError } from './errors';

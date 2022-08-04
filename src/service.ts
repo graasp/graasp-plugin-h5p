@@ -1,4 +1,4 @@
-import { FileTaskManager } from 'graasp-plugin-file';
+import { FileTaskManager } from '@graasp/plugin-file';
 
 import { H5PTaskManager } from './task-manager';
 

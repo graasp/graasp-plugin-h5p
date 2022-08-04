@@ -1,10 +1,10 @@
+import { FileTaskManager } from '@graasp/plugin-file';
+import { ItemType } from '@graasp/sdk';
 import path from 'path';
 
 import fastifyStatic from '@fastify/static';
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-
-import { FileTaskManager, ServiceMethod } from 'graasp-plugin-file';
 
 import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from './constants';
 import { H5PService } from './service';
@@ -13,9 +13,9 @@ import { validatePluginOptions } from './utils';
 
 const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
   validatePluginOptions(options);
-  const { serviceMethod, serviceOptions, pathPrefix, routes } = options;
+  const { fileItemType, fileConfigurations, pathPrefix, routes } = options;
 
-  const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
+  const fileTaskManager = new FileTaskManager(fileConfigurations, fileItemType);
   const h5pService = new H5PService(fileTaskManager, pathPrefix);
   fastify.decorate('h5p', h5pService);
 
@@ -24,7 +24,7 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
    * In the future, consider refactoring the fileService so that it can be grabbed from the
    * core instance and can serve the files directly (with an option to use or not auth)
    */
-  if (serviceMethod === ServiceMethod.LOCAL) {
+  if (fileItemType === ItemType.LOCAL_FILE) {
     /** Helper to set CORS headers policy */
     const setHeaders = (response: FastifyStaticReply) => {
       response.setHeader('Cross-Origin-Resource-Policy', 'same-site');
@@ -39,7 +39,7 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
       setHeaders,
     });
 
-    const h5pStorageRoot = path.join(serviceOptions.local.storageRootPath, pathPrefix);
+    const h5pStorageRoot = path.join(fileConfigurations.local.storageRootPath, pathPrefix);
     fastify.register(fastifyStatic, {
       root: h5pStorageRoot,
       prefix: routes?.content ?? DEFAULT_H5P_CONTENT_ROUTE,

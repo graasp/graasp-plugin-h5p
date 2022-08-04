@@ -1,3 +1,5 @@
+import { FileTaskManager } from '@graasp/plugin-file';
+import { Actor, Item, Task } from '@graasp/sdk';
 import extract from 'extract-zip';
 import fs from 'fs';
 import { lstat, mkdir, readdir } from 'fs/promises';
@@ -10,9 +12,6 @@ import { v4 } from 'uuid';
 import fastifyMultipart from '@fastify/multipart';
 import { FastifyLoggerInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
-
-import { Actor, Item, Task } from 'graasp';
-import { FileTaskManager } from 'graasp-plugin-file';
 
 import {
   DEFAULT_MIME_TYPE,
@@ -38,9 +37,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   } = fastify;
 
   validatePluginOptions(options);
-  const { serviceMethod, serviceOptions, pathPrefix, tempDir } = options;
+  const { fileItemType, fileConfigurations, pathPrefix, tempDir } = options;
 
-  const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
+  const fileTaskManager = new FileTaskManager(fileConfigurations, fileItemType);
   const h5pValidator = new H5PValidator();
 
   const h5pService = new H5PService(fileTaskManager, pathPrefix);

@@ -1,3 +1,13 @@
+import {
+  Actor,
+  DatabaseTransactionHandler,
+  Item,
+  ItemMembershipTaskManager,
+  ItemTaskManager,
+  ItemType,
+  TaskRunner,
+  UnknownExtra,
+} from '@graasp/sdk';
 import cs from 'checksum';
 import FormData from 'form-data';
 import fs from 'fs';
@@ -8,17 +18,6 @@ import { createMock } from 'ts-auto-mock';
 import util from 'util';
 
 import fastify, { FastifyInstance, FastifyLoggerInstance } from 'fastify';
-
-import {
-  Actor,
-  DatabaseTransactionHandler,
-  Item,
-  ItemMembershipTaskManager,
-  ItemTaskManager,
-  TaskRunner,
-  UnknownExtra,
-} from 'graasp';
-import { ServiceMethod } from 'graasp-plugin-file';
 
 import plugin from '../src/service-api';
 import {
@@ -95,8 +94,8 @@ export async function buildApp(args?: {
 
   const registerH5PPlugin = async () =>
     await app.register(plugin, {
-      serviceMethod: ServiceMethod.LOCAL,
-      serviceOptions: {
+      fileItemType: ItemType.LOCAL_FILE,
+      fileConfigurations: {
         local: {
           storageRootPath,
         },

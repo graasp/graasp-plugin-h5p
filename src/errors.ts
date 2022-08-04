@@ -1,6 +1,5 @@
+import { GraaspError, GraaspErrorDetails } from '@graasp/sdk';
 import { StatusCodes } from 'http-status-codes';
-
-import { GraaspError, GraaspErrorDetails } from 'graasp';
 
 export abstract class GraaspImportH5PError implements GraaspError {
   data?: unknown;

@@ -1,19 +1,18 @@
-import path from 'path';
-
-import { FastifyLoggerInstance } from 'fastify';
-
 import {
   Actor,
   DatabaseTransactionHandler,
   Item,
   ItemMembership,
+  ItemType,
   Member,
   MemberType,
   PermissionLevel,
   Task,
   TaskStatus,
-} from 'graasp';
-import { ServiceMethod } from 'graasp-plugin-file';
+} from '@graasp/sdk';
+import path from 'path';
+
+import { FastifyLoggerInstance } from 'fastify';
 
 import { H5PExtra, H5PPluginOptions } from '../src/types';
 
@@ -59,8 +58,8 @@ export const H5P_PACKAGES = {
 
 export const DEFAULT_PLUGIN_OPTIONS: H5PPluginOptions = {
   pathPrefix: 'mock-prefix',
-  serviceMethod: ServiceMethod.LOCAL,
-  serviceOptions: {
+  fileItemType: ItemType.LOCAL_FILE,
+  fileConfigurations: {
     local: {
       storageRootPath: 'mock-root-path',
     },
@@ -143,12 +142,12 @@ export const mockTask = <T>(
   name: string,
   actor: Actor,
   result: T,
-  status: TaskStatus = 'NEW',
+  status: TaskStatus = TaskStatus.NEW,
   run: (
     handler: DatabaseTransactionHandler,
     log: FastifyLoggerInstance,
   ) => Promise<void | Task<Actor, T>[]> = async (handler, log) => {
-    status = 'OK';
+    status = TaskStatus.OK;
   },
 ): Task<Actor, T> => ({
   name,

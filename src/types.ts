@@ -1,26 +1,13 @@
-import {
-  GraaspLocalFileItemOptions,
-  GraaspS3FileItemOptions,
-  ServiceMethod,
-} from 'graasp-plugin-file';
-
-import { H5PService } from './service';
-
-// TODO: declare in SDK instead
-declare module 'fastify' {
-  interface FastifyInstance {
-    h5p?: H5PService;
-  }
-}
+import { FileItemType, LocalFileConfiguration, S3FileConfiguration } from '@graasp/sdk';
 
 /**
  * Plugin options
  */
 export interface H5PPluginOptions {
   /** storage type */
-  serviceMethod: ServiceMethod;
+  fileItemType: FileItemType;
   /** storage options, given storage type */
-  serviceOptions: { s3: GraaspS3FileItemOptions; local: GraaspLocalFileItemOptions };
+  fileConfigurations: { s3: S3FileConfiguration; local: LocalFileConfiguration };
   /** path prefix of H5P content on storage */
   pathPrefix: string;
   /** optional: if serviceMethod is set to 'local', H5P assets and content will be mounted at the following routes (relative to the mount point of this plugin) otherwise defaults are used {@link file://./constants.ts} */
