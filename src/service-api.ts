@@ -20,8 +20,9 @@ import {
   MAX_FILES,
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
+  PLUGIN_NAME,
 } from './constants';
-import { GraaspImportH5PError, H5PImportError, InvalidH5PFileError } from './errors';
+import { GraaspH5PError, H5PImportError, InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { H5PService } from './service';
 import { H5PPluginOptions } from './types';
@@ -225,7 +226,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
           log.error(error);
           // wrap into plugin error type if not ours
-          if (!(error instanceof GraaspImportH5PError)) {
+          if (!(error instanceof GraaspH5PError)) {
             error = new H5PImportError();
           }
           throw error;
@@ -294,5 +295,5 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
 export default fp(plugin, {
   fastify: '3.x',
-  name: 'graasp-plugin-h5p',
+  name: PLUGIN_NAME,
 });

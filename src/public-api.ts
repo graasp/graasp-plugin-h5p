@@ -6,7 +6,7 @@ import fastifyStatic from '@fastify/static';
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from './constants';
+import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE, PUBLIC_PLUGIN_NAME } from './constants';
 import { H5PService } from './service';
 import { FastifyStaticReply, H5PPluginOptions } from './types';
 import { validatePluginOptions } from './utils';
@@ -51,5 +51,5 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
 
 export default fp(publicPlugin, {
   fastify: '3.x',
-  name: 'graasp-plugin-h5p-public',
+  name: PUBLIC_PLUGIN_NAME,
 });

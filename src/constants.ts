@@ -12,3 +12,6 @@ export const DEFAULT_MIME_TYPE = 'application/octet-stream';
 
 export const DEFAULT_H5P_CONTENT_ROUTE = '/h5p-content/';
 export const DEFAULT_H5P_ASSETS_ROUTE = '/h5p-assets/';
+
+export const PLUGIN_NAME = 'graasp-plugin-h5p';
+export const PUBLIC_PLUGIN_NAME = 'graasp-plugin-h5p-public';

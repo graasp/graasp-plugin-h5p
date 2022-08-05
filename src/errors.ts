@@ -1,25 +1,10 @@
-import { GraaspError, GraaspErrorDetails } from '@graasp/sdk';
+import { ErrorFactory } from '@graasp/sdk';
 import { StatusCodes } from 'http-status-codes';
+import { PLUGIN_NAME } from './constants';
 
-export abstract class GraaspImportH5PError implements GraaspError {
-  data?: unknown;
-  origin: 'plugin' | string;
-  code: string;
-  name: string;
-  statusCode?: number;
-  message: string;
+export const GraaspH5PError = ErrorFactory(PLUGIN_NAME);
 
-  constructor({ code, statusCode, message }: GraaspErrorDetails, data?: unknown) {
-    this.name = code;
-    this.code = code;
-    this.message = message;
-    this.statusCode = statusCode;
-    this.data = data;
-    this.origin = 'plugin';
-  }
-}
-
-export class InvalidH5PFileError extends GraaspImportH5PError {
+export class InvalidH5PFileError extends GraaspH5PError {
   constructor(data?: unknown) {
     super(
       {
@@ -32,7 +17,7 @@ export class InvalidH5PFileError extends GraaspImportH5PError {
   }
 }
 
-export class H5PItemNotFoundError extends GraaspImportH5PError {
+export class H5PItemNotFoundError extends GraaspH5PError {
   constructor(data?: unknown) {
     super(
       {
@@ -45,7 +30,7 @@ export class H5PItemNotFoundError extends GraaspImportH5PError {
   }
 }
 
-export class H5PItemMissingExtraError extends GraaspImportH5PError {
+export class H5PItemMissingExtraError extends GraaspH5PError {
   constructor(data?: unknown) {
     super(
       {
@@ -58,7 +43,7 @@ export class H5PItemMissingExtraError extends GraaspImportH5PError {
   }
 }
 
-export class H5PImportError extends GraaspImportH5PError {
+export class H5PImportError extends GraaspH5PError {
   constructor() {
     super({
       code: 'GPH5PERR004',
