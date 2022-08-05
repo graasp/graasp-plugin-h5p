@@ -1,3 +1,5 @@
+import { FileTaskManager } from '@graasp/plugin-file';
+import { Actor, H5PExtra, Item, PermissionLevel, Task } from '@graasp/sdk';
 import extract from 'extract-zip';
 import fs from 'fs';
 import { lstat, mkdir, readdir } from 'fs/promises';
@@ -11,9 +13,6 @@ import fastifyMultipart from '@fastify/multipart';
 import { FastifyLoggerInstance, FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { Actor, Item, Task } from 'graasp';
-import { FileTaskManager } from 'graasp-plugin-file';
-
 import {
   DEFAULT_MIME_TYPE,
   H5P_FILE_DOT_EXTENSION,
@@ -21,11 +20,12 @@ import {
   MAX_FILES,
   MAX_FILE_SIZE,
   MAX_NON_FILE_FIELDS,
+  PLUGIN_NAME,
 } from './constants';
-import { GraaspImportH5PError, H5PImportError, InvalidH5PFileError } from './errors';
+import { GraaspH5PError, H5PImportError, InvalidH5PFileError } from './errors';
 import { h5pImport } from './schemas';
 import { H5PService } from './service';
-import { H5PExtra, H5PPluginOptions, PermissionLevel } from './types';
+import { H5PPluginOptions } from './types';
 import { buildContentPath, buildH5PPath, buildRootPath, validatePluginOptions } from './utils';
 import { H5PValidator } from './validation/h5p-validator';
 
@@ -38,9 +38,9 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
   } = fastify;
 
   validatePluginOptions(options);
-  const { serviceMethod, serviceOptions, pathPrefix, tempDir } = options;
+  const { fileItemType, fileConfigurations, pathPrefix, tempDir } = options;
 
-  const fileTaskManager = new FileTaskManager(serviceOptions, serviceMethod);
+  const fileTaskManager = new FileTaskManager(fileConfigurations, fileItemType);
   const h5pValidator = new H5PValidator();
 
   const h5pService = new H5PService(fileTaskManager, pathPrefix);
@@ -226,7 +226,7 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           log.error('graasp-plugin-h5p: unexpected error occured while importing H5P:');
           log.error(error);
           // wrap into plugin error type if not ours
-          if (!(error instanceof GraaspImportH5PError)) {
+          if (!(error instanceof GraaspH5PError)) {
             error = new H5PImportError();
           }
           throw error;
@@ -295,5 +295,5 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
 
 export default fp(plugin, {
   fastify: '3.x',
-  name: 'graasp-plugin-h5p',
+  name: PLUGIN_NAME,
 });

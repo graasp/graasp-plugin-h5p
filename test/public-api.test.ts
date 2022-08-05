@@ -1,11 +1,10 @@
+import { ItemType } from '@graasp/sdk';
 import fs from 'fs/promises';
 import { StatusCodes } from 'http-status-codes';
 import path from 'path';
 import tmp, { DirectoryResult } from 'tmp-promise';
 
 import fastify, { FastifyInstance } from 'fastify';
-
-import { ServiceMethod } from 'graasp-plugin-file';
 
 import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE } from '../src/constants';
 import publicPlugin from '../src/public-api';
@@ -28,8 +27,8 @@ describe.each([
     app = fastify();
     tmpDir = await tmp.dir({ unsafeCleanup: true });
     await app.register(publicPlugin, {
-      serviceMethod: ServiceMethod.LOCAL,
-      serviceOptions: {
+      fileItemType: ItemType.LOCAL_FILE,
+      fileConfigurations: {
         local: {
           storageRootPath: tmpDir.path,
         },

@@ -1,3 +1,12 @@
+import {
+  Actor,
+  H5PExtra,
+  Item,
+  PostHookHandlerType,
+  PreHookHandlerType,
+  TaskRunner,
+  TaskStatus,
+} from '@graasp/sdk';
 import { Options, compare as dircompare, fileCompareHandlers } from 'dir-compare';
 import fs from 'fs';
 import fsp from 'fs/promises';
@@ -6,12 +15,9 @@ import LightMyRequest from 'light-my-request';
 import path from 'path';
 import { createMock } from 'ts-auto-mock';
 
-import { Actor, Item, PostHookHandlerType, PreHookHandlerType, TaskRunner } from 'graasp';
-
 import { H5P_FILE_DOT_EXTENSION, H5P_ITEM_TYPE } from '../src/constants';
 import { H5PImportError, InvalidH5PFileError } from '../src/errors';
 import { H5PService } from '../src/service';
-import { H5PExtra } from '../src/types';
 import {
   BuildAppType,
   CoreSpiesType,
@@ -136,7 +142,7 @@ describe('Service plugin', () => {
           'MockFailCreateItemTask',
           MOCK_MEMBER,
           undefined,
-          'NEW',
+          TaskStatus.NEW,
           (handler, log) => {
             throw new Error('mock-error');
           },

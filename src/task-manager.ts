@@ -1,12 +1,10 @@
+import { FileTaskManager } from '@graasp/plugin-file';
+import { Actor, H5PExtra, Item, Task } from '@graasp/sdk';
 import { ReadStream } from 'fs';
 import path from 'path';
 
-import { Actor, Item, Task } from 'graasp';
-import { FileTaskManager } from 'graasp-plugin-file';
-
 import { H5P_FILE_MIME_TYPE } from './constants';
 import { H5PItemMissingExtraError } from './errors';
-import { H5PExtra } from './types';
 
 export class H5PTaskManager {
   private fileTaskManager: FileTaskManager;
