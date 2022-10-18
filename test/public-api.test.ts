@@ -92,4 +92,12 @@ describe.each([
     });
     expect(response.statusCode).toEqual(StatusCodes.NOT_FOUND);
   });
+
+  it('serves integration file', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: path.join(routes?.assets ?? DEFAULT_H5P_ASSETS_ROUTE, 'integration.html'),
+    });
+    expect(response.statusCode).toEqual(StatusCodes.OK);
+  });
 });

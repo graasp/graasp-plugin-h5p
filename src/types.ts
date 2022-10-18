@@ -15,6 +15,8 @@ export interface H5PPluginOptions {
     assets: string;
     content: string;
   };
+  /** optional: if serviceMethod is set to 'local', H5P integration will be mounted at <host>/<routes.assets>/integration.html */
+  host?: string;
   /** optional: temp directory */
   tempDir?: string;
 }

@@ -1,19 +1,24 @@
 import { FileTaskManager } from '@graasp/plugin-file';
 import { ItemType } from '@graasp/sdk';
+import { readFile } from 'fs/promises';
 import path from 'path';
 
 import fastifyStatic from '@fastify/static';
 import { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { DEFAULT_H5P_ASSETS_ROUTE, DEFAULT_H5P_CONTENT_ROUTE, PUBLIC_PLUGIN_NAME } from './constants';
+import {
+  DEFAULT_H5P_ASSETS_ROUTE,
+  DEFAULT_H5P_CONTENT_ROUTE,
+  PUBLIC_PLUGIN_NAME,
+} from './constants';
 import { H5PService } from './service';
 import { FastifyStaticReply, H5PPluginOptions } from './types';
 import { validatePluginOptions } from './utils';
 
 const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) => {
   validatePluginOptions(options);
-  const { fileItemType, fileConfigurations, pathPrefix, routes } = options;
+  const { fileItemType, fileConfigurations, pathPrefix, routes, host } = options;
 
   const fileTaskManager = new FileTaskManager(fileConfigurations, fileItemType);
   const h5pService = new H5PService(fileTaskManager, pathPrefix);
@@ -29,6 +34,18 @@ const publicPlugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, optio
     const setHeaders = (response: FastifyStaticReply) => {
       response.setHeader('Cross-Origin-Resource-Policy', 'same-site');
     };
+
+    // serve integration file
+    // NOTE! the path is relative to the resulting public-api.js file in the dist folder!
+    const integrationPath = path.resolve(__dirname, './public/integration.html');
+    const integrationRoute = path.join(
+      routes?.assets ?? DEFAULT_H5P_ASSETS_ROUTE,
+      'integration.html',
+    );
+    fastify.get(integrationRoute, async (req, res) => {
+      const html = await readFile(integrationPath, { encoding: 'utf-8' });
+      res.send(html);
+    });
 
     // hack to serve the "dist" folder of package "h5p-standalone"
     const h5pAssetsRoot = path.dirname(require.resolve('h5p-standalone'));
