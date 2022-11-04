@@ -35,6 +35,8 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
     items: { taskManager: itemTaskManager },
     itemMemberships: { taskManager: itemMembershipTaskManager },
     taskRunner,
+    db,
+    log,
   } = fastify;
 
   validatePluginOptions(options);
@@ -88,7 +90,12 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
           mimetype,
         });
 
-        await taskRunner.runSingle(uploadTask);
+        // WARNING: we purposedly bypass the task runner
+        // (this prevents opening unwanted db connections)
+        // TODO: file plugin refactor should be task agnostic and provide a fileService
+        // so we'll simply call fileService.uploadFile in the future
+        await uploadTask.run(db.pool, log);
+
         // we're using flatMap, wrap result in array
         return [childUploadPath];
       }
