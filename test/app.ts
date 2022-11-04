@@ -77,6 +77,7 @@ export async function buildApp(args?: {
 
   const app = fastify();
 
+  app.decorate('db', { pool: dbTrxHandler });
   app.decorate('items', { taskManager: itemTaskManager });
   app.decorate('itemMemberships', { taskManager: itemMembershipTaskManager });
   app.decorate('taskRunner', taskRunner);
