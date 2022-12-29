@@ -223,7 +223,11 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
             const deleteTask = fileTaskManager.createDeleteFolderTask(member, {
               folderPath: remoteRootPath,
             });
-            await taskRunner.runSingle(deleteTask);
+            // WARNING: we purposedly bypass the task runner
+            // (this prevents opening unwanted db connections)
+            // TODO: file plugin refactor should be task agnostic and provide a fileService
+            // so we'll simply call fileService.uploadFile in the future
+            await deleteTask.run(db.pool, log);
             // rethrow above
             throw error;
           }
@@ -249,54 +253,70 @@ const plugin: FastifyPluginAsync<H5PPluginOptions> = async (fastify, options) =>
      * Delete H5P assets on item delete
      */
     const deleteItemTaskName = itemTaskManager.getDeleteTaskName();
-    taskRunner.setTaskPostHookHandler<Item<H5PExtra>>(deleteItemTaskName, async (item, actor) => {
-      if (item.type !== H5P_ITEM_TYPE) {
-        return;
-      }
-      const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
-        folderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
-      });
-      await taskRunner.runSingle(deleteTask);
-    });
+    taskRunner.setTaskPostHookHandler<Item<H5PExtra>>(
+      deleteItemTaskName,
+      async (item, actor, { handler }) => {
+        if (item.type !== H5P_ITEM_TYPE) {
+          return;
+        }
+        const deleteTask = fileTaskManager.createDeleteFolderTask(actor, {
+          folderPath: buildRootPath(pathPrefix, item.extra.h5p.contentId),
+        });
+
+        // WARNING: we purposedly bypass the task runner
+        // (this prevents opening unwanted db connections)
+        // TODO: file plugin refactor should be task agnostic and provide a fileService
+        await deleteTask.run(handler ?? db.pool, log);
+      },
+    );
 
     /**
      * Copy H5P assets on item copy
      */
     const copyItemTaskName = itemTaskManager.getCopyTaskName();
-    taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(copyItemTaskName, async (item, actor) => {
-      // only execute this handler for H5P item types
-      if (item.type !== H5P_ITEM_TYPE) {
-        return;
-      }
-      if (!item.name) {
-        throw new Error('Invalid state: missing previous H5P item name on copy');
-      }
-      if (!item.extra?.h5p) {
-        throw new Error('Invalid state: missing previous H5P item extra on copy');
-      }
+    taskRunner.setTaskPreHookHandler<Item<H5PExtra>>(
+      copyItemTaskName,
+      async (item, actor, { handler }) => {
+        // only execute this handler for H5P item types
+        if (item.type !== H5P_ITEM_TYPE) {
+          return;
+        }
+        if (!item.name) {
+          throw new Error('Invalid state: missing previous H5P item name on copy');
+        }
+        if (!item.extra?.h5p) {
+          throw new Error('Invalid state: missing previous H5P item extra on copy');
+        }
 
-      const baseName = path.basename(item.name, H5P_FILE_DOT_EXTENSION);
-      const copySuffix = '-1';
-      const newName = `${baseName}${copySuffix}`;
+        const baseName = path.basename(item.name, H5P_FILE_DOT_EXTENSION);
+        const copySuffix = '-1';
+        const newName = `${baseName}${copySuffix}`;
 
-      const newContentId = v4();
-      const remoteRootPath = buildRootPath(pathPrefix, newContentId);
+        const newContentId = v4();
+        const remoteRootPath = buildRootPath(pathPrefix, newContentId);
 
-      // copy .h5p file
-      const copyH5PTask = fileTaskManager.createCopyFileTask(actor, {
-        originalPath: path.join(pathPrefix, item.extra.h5p.h5pFilePath),
-        newFilePath: buildH5PPath(remoteRootPath, newName),
-      });
-      // copy content folder
-      const copyContentTask = fileTaskManager.createCopyFolderTask(actor, {
-        originalFolderPath: path.join(pathPrefix, item.extra.h5p.contentFilePath),
-        newFolderPath: buildContentPath(remoteRootPath),
-      });
+        // copy .h5p file
+        const copyH5PTask = fileTaskManager.createCopyFileTask(actor, {
+          originalPath: path.join(pathPrefix, item.extra.h5p.h5pFilePath),
+          newFilePath: buildH5PPath(remoteRootPath, newName),
+        });
+        // copy content folder
+        const copyContentTask = fileTaskManager.createCopyFolderTask(actor, {
+          originalFolderPath: path.join(pathPrefix, item.extra.h5p.contentFilePath),
+          newFolderPath: buildContentPath(remoteRootPath),
+        });
 
-      await taskRunner.runSingleSequence([copyH5PTask, copyContentTask]);
-      item.name = buildH5PPath('', newName);
-      item.extra.h5p = buildH5PExtra(newContentId, newName).h5p;
-    });
+        // WARNING: we purposedly bypass the task runner
+        // (this prevents opening unwanted db connections)
+        // TODO: file plugin refactor should be task agnostic and provide a fileService
+        const copyH5PPromise = copyH5PTask.run(handler ?? db.pool, log);
+        const copyContentPromise = copyContentTask.run(handler ?? db.pool, log);
+        await Promise.all([copyH5PPromise, copyContentPromise]);
+
+        item.name = buildH5PPath('', newName);
+        item.extra.h5p = buildH5PExtra(newContentId, newName).h5p;
+      },
+    );
   });
 };
 
