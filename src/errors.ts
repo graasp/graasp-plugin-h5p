@@ -1,5 +1,6 @@
 import { ErrorFactory } from '@graasp/sdk';
 import { StatusCodes } from 'http-status-codes';
+
 import { PLUGIN_NAME } from './constants';
 
 export const GraaspH5PError = ErrorFactory(PLUGIN_NAME);
